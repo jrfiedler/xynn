@@ -1,3 +1,9 @@
 .ipynb_checkpoints/
 *.pyc
 .coverage
+__pycache__/
+build/
+lightning_logs/
+dist/
+shim.egg-info/
+.vscode/
