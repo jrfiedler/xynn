@@ -60,12 +60,12 @@ embedding_l2_reg : float, optional
 {}
 mlp_hidden_sizes : int or iterable of int, optional
     sizes for the linear transformations between the MLP input and
-    the output size needed based on the target; default is (128, 128)
+    the output size needed based on the target; default is (512, 256, 128, 64)
 mlp_activation : subclass of torch.nn.Module, optional
     default is nn.LeakyReLU
 mlp_use_bn : boolean, optional
     whether to use batch normalization between MLP linear layers;
-    defualut is False
+    default is True
 mlp_bn_momentum : float, optional
     only used if `mlp_use_bn` is True; default is 0.01
 mlp_dropout : float, optional
@@ -75,10 +75,10 @@ mlp_l1_reg : float, optional
     value for l1 regularization of MLP weights; default is 0.0
 mlp_l2_reg : float, optional
     value for l2 regularization of MLP weights; default is 0.0
-leaky_gate : boolean, optional
-    whether to include a "leaky gate" layer before the MLP;
-    default is False
-use_skip : boolean, optional
+mlp_leaky_gate : boolean, optional
+    whether to include a "leaky gate" layer before the MLP layers;
+    default is True
+mlp_use_skip : boolean, optional
     use a side path in the MLP containing just the optional leaky gate
     plus single linear layer; default is True
 loss_fn : "auto" or PyTorch loss function, optional

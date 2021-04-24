@@ -86,7 +86,7 @@ class MLP(nn.Module):
         activation: Type[nn.Module] = nn.LeakyReLU,
         dropout: Union[float, Tuple[float], List[float]] = 0.0,
         dropout_first: bool = False,
-        use_bn: bool = False,
+        use_bn: bool = True,
         bn_momentum: float = 0.1,
         leaky_gate: bool = True,
         use_skip: bool = True,
@@ -114,7 +114,7 @@ class MLP(nn.Module):
             linear layer (and after "leaky_gate", if using);
             default is False
         use_bn : boolean, optional
-            whether to use batch normalization; default is False
+            whether to use batch normalization; default is True
         bn_momentum : float, optional
             default is 0.1
         leaky_gate : boolean, optional

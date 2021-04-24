@@ -146,7 +146,7 @@ class AttnInteractionBlock(nn.Module):
         use_residual: bool = True,
         dropout: float = 0.0,
         normalize: bool = True,
-        leaky_gate: bool = False,
+        leaky_gate: bool = True,
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__()
@@ -203,13 +203,13 @@ class AutoInt(BaseNN):
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
         attn_normalize: bool = True,
-        mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (128, 128),
+        mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
-        mlp_use_bn: bool = False,
+        mlp_use_bn: bool = True,
         mlp_bn_momentum: float = 0.1,
         mlp_dropout: float = 0.0,
-        leaky_gate: bool = False,
-        use_skip: bool = False,
+        mlp_leaky_gate: bool = True,
+        mlp_use_skip: bool = True,
         weighted_sum: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
@@ -230,7 +230,7 @@ class AutoInt(BaseNN):
             use_residual=attn_use_residual,
             dropout=attn_dropout,
             normalize=attn_normalize,
-            leaky_gate=leaky_gate,
+            leaky_gate=mlp_leaky_gate,
             device=device,
         )
 
@@ -245,8 +245,8 @@ class AutoInt(BaseNN):
                 dropout_first=True,
                 use_bn=mlp_use_bn,
                 bn_momentum=mlp_bn_momentum,
-                leaky_gate=leaky_gate,
-                use_skip=use_skip,
+                leaky_gate=mlp_leaky_gate,
+                use_skip=mlp_use_skip,
                 device=device,
             )
             if weighted_sum:
