@@ -68,7 +68,7 @@ class BasicEmbedding(UniformBase, BasicBase):
         """
         super().__init__()
         self.num_fields = 0
-        self.output_size = (0, 0, 0)
+        self.output_size = 0
         self.lookup: Dict[Tuple[int, Any], int] = {}
         self.lookup_nan: Dict[int, int] = {}
         self.num_values = 0
@@ -176,7 +176,7 @@ class LinearEmbedding(UniformBase):
         """
         super().__init__()
         self.num_fields = 0
-        self.output_size = (0, 0, 0)
+        self.output_size = 0
         self.embedding: Optional[nn.Embedding] = None
         self.embedding_size = embedding_size
         self._device = device
@@ -262,7 +262,7 @@ class DefaultEmbedding(UniformBase, DefaultBase):
         """
         super().__init__()
         self.num_fields = 0
-        self.output_size = (0, 0, 0)
+        self.output_size = 0
         self.alpha = alpha
         self.lookup: Dict[Tuple[int, Any], Tuple[int, int]] = {}
         self.lookup_nan: Dict[int, Tuple[int, int]] = {}

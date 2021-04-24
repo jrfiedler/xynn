@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from xynn.embedding.utils import _init_embed_info, _check_is_uniform
-from xynn.embedding import fit_embeddings, check_uniform_embeddings
+from xynn.embedding import fit_embeddings, check_uniform_embeddings, check_embeddings
 from xynn.embedding import LinearEmbedding, BasicEmbedding, DefaultEmbedding
 from xynn.embedding import RaggedEmbedding, RaggedDefaultEmbedding
 from xynn.dataset import TabularDataset
@@ -132,7 +132,7 @@ def test_fit_embeddings_with_linear_and_ragged_default():
     assert torch.allclose(output[2, 5:7], weight[2][0])
 
 
-def test_that_check_uniform_raises_error_with_nonuniform_embedding():
+def test_that_check_uniform_embeddings_raises_error_with_nonuniform_embedding():
     embedding_num = LinearEmbedding(embedding_size=10)
     embedding_cat = RaggedDefaultEmbedding()
     with pytest.raises(
@@ -156,14 +156,14 @@ def test_that_check_uniform_raises_error_with_nonuniform_embedding():
         check_uniform_embeddings(embedding_num, embedding_cat)
 
 
-def test_that_check_uniform_raises_error_when_both_none():
+def test_that_check_uniform_embeddings_raises_error_when_both_none():
     with pytest.raises(
         ValueError, match="embedding_num and embedding_cat cannot both be None"
     ):
         check_uniform_embeddings(None, None)
 
 
-def test_that_check_uniform_raises_error_when_sizes_differ():
+def test_that_check_uniform_embeddings_raises_error_when_sizes_differ():
     embedding_num = LinearEmbedding(embedding_size=4)
     embedding_cat = BasicEmbedding(embedding_size=10)
     with pytest.raises(
@@ -173,7 +173,7 @@ def test_that_check_uniform_raises_error_when_sizes_differ():
         check_uniform_embeddings(embedding_num, embedding_cat)
 
 
-def test_check_uniform_when_embedding_num_is_none():
+def test_check_uniform_embeddings_when_embedding_num_is_none():
     dataloader = simple_dataloader()
     embedding_num = None
 
@@ -192,7 +192,7 @@ def test_check_uniform_when_embedding_num_is_none():
     assert out_size == 24
 
 
-def test_check_uniform_when_embedding_cat_is_none():
+def test_check_uniform_embeddings_when_embedding_cat_is_none():
     dataloader = simple_dataloader()
     embedding_num = LinearEmbedding(embedding_size=4)
     embedding_cat = None
@@ -203,7 +203,7 @@ def test_check_uniform_when_embedding_cat_is_none():
     assert out_size == 8
 
 
-def test_check_uniform_when_both_not_none():
+def test_check_uniform_embeddings_when_both_not_none():
     dataloader = simple_dataloader()
 
     embedding_num = LinearEmbedding(embedding_size=10)
@@ -221,3 +221,52 @@ def test_check_uniform_when_both_not_none():
     assert num_fields == 5
     assert emb_size == 8
     assert out_size == 40
+
+
+def test_check_embeddings_when_both_none():
+    assert check_embeddings(None, None) == (0, 0)
+
+
+def test_check_embeddings_when_embedding_num_is_none():
+    dataloader = simple_dataloader()
+    embedding_num = None
+
+    embedding_cat = RaggedEmbedding(embedding_size=(3, 4, 2))
+    embedding_num, embedding_cat = fit_embeddings(dataloader, embedding_num, embedding_cat)
+    num_fields, out_size = check_embeddings(embedding_num, embedding_cat)
+    assert num_fields == 3
+    assert out_size == 9
+
+    embedding_cat = BasicEmbedding(embedding_size=8)
+    embedding_num, embedding_cat = fit_embeddings(dataloader, embedding_num, embedding_cat)
+    num_fields, out_size = check_embeddings(embedding_num, embedding_cat)
+    assert num_fields == 3
+    assert out_size == 24
+
+
+def test_check_embeddings_when_embedding_cat_is_none():
+    dataloader = simple_dataloader()
+    embedding_num = LinearEmbedding(embedding_size=4)
+    embedding_cat = None
+    embedding_num, embedding_cat = fit_embeddings(dataloader, embedding_num, embedding_cat)
+    num_fields, out_size = check_embeddings(embedding_num, embedding_cat)
+    assert num_fields == 2
+    assert out_size == 8
+
+
+def test_check_embeddings_when_both_not_none():
+    dataloader = simple_dataloader()
+
+    embedding_num = LinearEmbedding(embedding_size=10)
+    embedding_cat = DefaultEmbedding(embedding_size=10, alpha=2)
+    embedding_num, embedding_cat = fit_embeddings(dataloader, embedding_num, embedding_cat)
+    num_fields, out_size = check_embeddings(embedding_num, embedding_cat)
+    assert num_fields == 5
+    assert out_size == 50
+
+    embedding_num = LinearEmbedding(embedding_size=8)
+    embedding_cat = RaggedEmbedding(embedding_size=(3, 4, 2))
+    embedding_num, embedding_cat = fit_embeddings(dataloader, embedding_num, embedding_cat)
+    num_fields, out_size = check_embeddings(embedding_num, embedding_cat)
+    assert num_fields == 5
+    assert out_size == 25

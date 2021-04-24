@@ -111,7 +111,7 @@ class RaggedEmbedding(RaggedBase, BasicBase):
         super().__init__()
         _check_embedding_size(embedding_size)
         self.num_fields = 0
-        self.output_size = (0, 0)
+        self.output_size = 0
         self.lookup: Dict[Tuple[int, Any], int] = {}
         self.lookup_nan: Dict[int, int] = {}
         self.num_values: List[int] = []
@@ -259,7 +259,7 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
         super().__init__()
         _check_embedding_size(embedding_size)
         self.num_fields = 0
-        self.output_size = (0, 0)
+        self.output_size = 0
         self.alpha = alpha
         self.lookup: Dict[Tuple[int, Any], Tuple[int, int]] = {}
         self.lookup_nan: Dict[int, Tuple[int, int]] = {}

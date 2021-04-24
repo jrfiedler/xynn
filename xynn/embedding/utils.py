@@ -12,7 +12,10 @@ from .uniform import UniformBase, LinearEmbedding, BasicEmbedding
 from .ragged import RaggedEmbedding
 
 
-EmbeddingInfo = namedtuple("EmbeddingInfo", ["num_fields", "embedding_size", "output_size"])
+EmbeddingInfo = namedtuple("EmbeddingInfo", ["num_fields", "output_size"])
+UniformEmbeddingInfo = namedtuple(
+    "EmbeddingInfo", ["num_fields", "embedding_size", "output_size"]
+)
 
 
 def _init_embed_info(embedding):
@@ -96,6 +99,23 @@ def check_uniform_embeddings(
     embedding_num: Optional[EmbeddingBase],
     embedding_cat: Optional[EmbeddingBase],
 ) -> EmbeddingInfo:
+    """
+    Check that embeddings are uniform, are not both None, and have same
+    embedding_size
+
+    Parameters
+    ----------
+    embedding_num : XyNN embedding or None
+    embedding_cat : XyNN embedding or None
+
+    Return
+    ------
+    UniformEmbeddingInfo NamedTuple containing
+    - num_fields
+    - embedding_size
+    - output_size = num_fields * embedding_size
+
+    """
     # check embedding sizes and get derived values
     if embedding_num is None and embedding_cat is None:
         raise ValueError("embedding_num and embedding_cat cannot both be None")
@@ -122,4 +142,40 @@ def check_uniform_embeddings(
         num_fields += embedding_cat.num_fields
         embedding_size = embedding_cat.embedding_size
 
-    return EmbeddingInfo(num_fields, embedding_size, num_fields * embedding_size)
+    return UniformEmbeddingInfo(num_fields, embedding_size, num_fields * embedding_size)
+
+
+def check_embeddings(
+    embedding_num: Optional[EmbeddingBase],
+    embedding_cat: Optional[EmbeddingBase],
+) -> EmbeddingInfo:
+    """
+    Return combined embedding info
+
+    Parameters
+    ----------
+    embedding_num : XyNN embedding or None
+    embedding_cat : XyNN embedding or None
+
+    Return
+    ------
+    EmbeddingInfo NamedTuple containing
+    - num_fields
+    - output_size = sum of individual output sizes
+
+    """
+    # get number of fields and total output size
+    if embedding_num is None and embedding_cat is None:
+        return EmbeddingInfo(0, 0)
+
+    num_fields = 0
+    output_size = 0
+    if embedding_num is not None:
+        num_fields += embedding_num.num_fields
+        output_size += embedding_num.output_size
+
+    if embedding_cat is not None:
+        num_fields += embedding_cat.num_fields
+        output_size += embedding_cat.output_size
+
+    return EmbeddingInfo(num_fields, output_size)

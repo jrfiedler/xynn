@@ -5,6 +5,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 import pytest
 
+from xynn.base_classes.estimators import _set_seed
 from xynn.embedding import BasicEmbedding, LinearEmbedding, DefaultEmbedding
 from ..common import simple_train_loop
 from .utils import example_data
@@ -361,6 +362,7 @@ def test_defaultembedding_with_numpy_example():
 
 
 def test_defaultembedding_with_dataloader_example():
+    _set_seed(68794)
     data_cat = example_data()[["cat_a", "cat_b", "cat_c"]].values
     dataset = CatDataset(data_cat)
     dataloader = DataLoader(dataset, batch_size=5)
