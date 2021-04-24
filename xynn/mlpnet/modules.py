@@ -15,7 +15,7 @@ from torch import nn
 
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
 from ..mlp import MLP
-from ..embedding import check_uniform_embeddings
+from ..embedding import check_embeddings
 from ..embedding.common import EmbeddingBase
 
 
@@ -44,7 +44,7 @@ class MLPNet(BaseNN):
     ):
         super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
 
-        embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
+        embed_info = check_embeddings(embedding_num, embedding_cat)
 
         self.mlp = MLP(
             task,
@@ -63,7 +63,6 @@ class MLPNet(BaseNN):
         )
 
         self.mix = self.mlp.mix
-        self.embedding_size = embed_info.embedding_size
         #self.to(device)
 
     __init__.__doc__ = INIT_DOC

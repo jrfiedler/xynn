@@ -4,22 +4,7 @@ import torch
 from torch import nn
 from pytorch_lightning import Trainer
 
-from ..common import SimpleMLP, simple_train_inputs
-
-
-class SimpleEmbedding(nn.Module):
-
-    def __init__(self, num_embeddings, embedding_dim):
-        super().__init__()
-        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        self.embedding_size = embedding_dim
-
-    def weight_sum(self):
-        w = self.embedding.weight
-        return w.abs().sum().item(), (w ** 2).sum().item()
-
-    def forward(self, x):
-        return self.embedding(x)
+from ..common import SimpleMLP, simple_train_inputs, SimpleEmbedding
 
 
 def test_that_basenn_raises_error_for_bad_task_value():

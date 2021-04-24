@@ -1,3 +1,5 @@
+import json
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pandas as pd
@@ -5,7 +7,25 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
+from xynn.base_classes.estimators import _set_seed
 from xynn.base_classes.modules import BaseNN
+
+
+class SimpleEmbedding(nn.Module):
+
+    def __init__(self, num_embeddings, embedding_dim):
+        super().__init__()
+        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
+        self.num_fields = 1
+        self.embedding_size = embedding_dim
+        self.output_size = embedding_dim
+
+    def weight_sum(self):
+        w = self.embedding.weight
+        return w.abs().sum().item(), (w ** 2).sum().item()
+
+    def forward(self, x):
+        return self.embedding(x)
 
 
 def simple_train_loop(module, X, y, loss_func, optimizer, num_epochs):
@@ -14,6 +34,20 @@ def simple_train_loop(module, X, y, loss_func, optimizer, num_epochs):
     for e_ in range(num_epochs):
         optimizer.zero_grad()
         y_pred = module(X)
+        loss = loss_func(y_pred, y)
+        loss.backward()
+        optimizer.step()
+        losses.append(loss.item())
+    return losses
+
+
+def simple_model_train_loop(model, X_num, X_cat, y, loss_func, optimizer, num_epochs):
+    model.train()
+    losses = []
+    for e_ in range(num_epochs):
+        optimizer.zero_grad()
+        y_pred = model(X_num, X_cat)
+        print(y_pred.shape, y.shape)
         loss = loss_func(y_pred, y)
         loss.backward()
         optimizer.step()
@@ -98,15 +132,15 @@ class SimpleDataset(Dataset):
 
 
 def simple_data(task="regression"):
-    X_num = torch.randint(0, 5, (300, 10), dtype=torch.float32)
+    X_num = torch.randint(-2, 2, (300, 10), dtype=torch.float32)
     X_cat = torch.randint(0, 2, (300, 1), dtype=torch.float32)
-    z = torch.rand(size=(300, 3), dtype=torch.float32) * 2 - 1
+    z = torch.rand(size=(300, 3), dtype=torch.float32) - 0.5
     y = torch.tensor(
         [
             [
                 0.1 * num[0] - 0.2 * num[1] + 0.1 * num[2] * num[3] + cat[0],
                 - 0.3 * num[4] * num[6] * num[7] + 0.1 * num[8] - num[9],
-                - 0.2 * num[1] - 0.3 * num[4] * num[6] * num[7] + 0.1 - cat[0],
+                - 0.2 * num[1] - 0.3 * num[4] * num[6] * num[7] + 0.1 * cat[0],
             ]
             for num, cat in zip(X_num, X_cat)
         ],
@@ -154,3 +188,34 @@ def simple_train_inputs(
     valid_dl = DataLoader(valid_ds, batch_size=10)
 
     return model, train_dl, valid_dl
+
+
+def check_estimator_learns(model_class, task, data=None, seed=10101):
+    _set_seed(seed)
+
+    if data is None:
+        X_num, X_cat, y = simple_data(task=task)
+    else:
+        X_num, X_cat, y = data
+
+    logfile = NamedTemporaryFile()
+
+    model_class(
+        mlp_hidden_sizes=[10, 8, 8, 6],
+        mlp_use_bn=False,
+        mlp_leaky_gate=False,
+        mlp_use_skip=False,
+    ).fit(
+        X_num=X_num,
+        X_cat=X_cat,
+        y=y,
+        optimizer=torch.optim.Adam,
+        opt_kwargs={"lr": 1e-1},
+        log_path=logfile.name,
+    )
+
+    with open(logfile.name, "r") as infile:
+        train_info = json.load(infile)
+
+    loss_vals = [epoch["train_loss"] for epoch in train_info["train_info"]]
+    assert any(loss_vals[i] < loss_vals[0] for i in range(1, len(loss_vals)))
