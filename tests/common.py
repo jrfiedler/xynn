@@ -190,7 +190,7 @@ def simple_train_inputs(
     return model, train_dl, valid_dl
 
 
-def check_estimator_learns(model_class, task, data=None, seed=10101):
+def check_estimator_learns(estimator, task, data=None, seed=10101):
     _set_seed(seed)
 
     if data is None:
@@ -200,12 +200,7 @@ def check_estimator_learns(model_class, task, data=None, seed=10101):
 
     logfile = NamedTemporaryFile()
 
-    model_class(
-        mlp_hidden_sizes=[10, 8, 8, 6],
-        mlp_use_bn=False,
-        mlp_leaky_gate=False,
-        mlp_use_skip=False,
-    ).fit(
+    estimator.fit(
         X_num=X_num,
         X_cat=X_cat,
         y=y,
