@@ -1,16 +1,12 @@
 """
-Embedding classes that allow embedding of multiple fields together,
-with fixed vector size across fields
+Classes for embedding categorical fields
 
 BasicEmbedding
   - embed each value with single vector
-LinearEmbedding
-  - embed each *field* with a vector; for each numeric value, multiply the
-    field vector by the value
 DefaultEmbedding
   - like BasicEmbedding, but include a "default" vector for each field
-  - returned embedding vector for a value is a weighted combination between
-    the value's own vector and the field's "default" vector
+  - returned vector is a weighted combination between the value's own vector
+    and the field's "default" vector
   - the weighting is based on the count of value in the training set; a higher
     count puts more weight the value's own vector
   - values not seen in the training data are embedded with the default vector
@@ -24,31 +20,8 @@ import torch
 from torch import Tensor
 from torch import nn
 
-from .common import _isnan
-from .common import EmbeddingBase, BasicBase, DefaultBase
-
-
-class UniformBase(EmbeddingBase):
-    """Base class for embeddings that have a single vector size for all fields"""
-
-    def __init__(self):
-        super().__init__()
-        self.embedding: Optional[nn.Embedding] = None
-
-    def weight_sum(self) -> Tuple[float, float]:
-        """
-        Sum of absolute value and square of embedding weights
-
-        Return
-        ------
-        e1_sum : sum of absolute value of embedding values
-        e2_sum : sum of squared embedding values
-        """
-        if not self._isfit:
-            return 0.0, 0.0
-        e1_sum = self.embedding.weight.abs().sum().item()
-        e2_sum = (self.embedding.weight ** 2).sum().item()
-        return e1_sum, e2_sum
+from ..common import _isnan, BasicBase, DefaultBase
+from .base import UniformBase
 
 
 class BasicEmbedding(UniformBase, BasicBase):
@@ -57,12 +30,12 @@ class BasicEmbedding(UniformBase, BasicBase):
 
     """
 
-    def __init__(self, embedding_size: int, device: Union[str, torch.device] = "cpu"):
+    def __init__(self, embedding_size: int = 10, device: Union[str, torch.device] = "cpu"):
         """
         Parameters
         ----------
-        embedding_size : int
-            size of each value's embedding vector
+        embedding_size : int, optional
+            size of each value's embedding vector; default is 10
         device : string or torch.device
 
         """
@@ -158,79 +131,6 @@ class BasicEmbedding(UniformBase, BasicBase):
         return self.embedding(torch.LongTensor(idxs, device=self._device))
 
 
-class LinearEmbedding(UniformBase):
-    """
-    An embedding for numeric fields. There is one embedded vector for each field.
-    The embedded vector for a value is that value times its field's vector.
-
-    """
-
-    def __init__(self, embedding_size: int, device: Union[str, torch.device] = "cpu"):
-        """
-        Parameters
-        ----------
-        embedding_size : int
-            size of each value's embedding vector
-        device : string or torch.device
-
-        """
-        super().__init__()
-        self.num_fields = 0
-        self.output_size = 0
-        self.embedding: Optional[nn.Embedding] = None
-        self.embedding_size = embedding_size
-        self._device = device
-        self.to(device)
-        self._isfit = False
-
-    def from_values(self, num_fields: int):
-        """
-        Create the embedding for the given number of fields
-
-        Parameters
-        ----------
-        num_fields : int
-
-        Return
-        ------
-        self
-
-        """
-        self.num_fields = num_fields
-        self.output_size = num_fields * self.embedding_size
-        self.embedding = nn.Embedding(num_fields, self.embedding_size).to(device=self._device)
-        nn.init.xavier_uniform_(self.embedding.weight)
-
-        self._isfit = True
-
-        return self
-
-    def _fit_array(self, X):
-        self.from_values(X.shape[1])
-
-    def _fit_iterable(self, X):
-        for batch in X:
-            self._fit_array(batch)
-            break
-
-    def forward(self, X: Tensor) -> Tensor:
-        """
-        Produce embedding for each value in input
-
-        Parameters
-        ----------
-        X : torch.Tensor
-
-        Return
-        ------
-        torch.Tensor
-
-        """
-        if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
-        return self.embedding.weight * X.unsqueeze(dim=-1)
-
-
 class DefaultEmbedding(UniformBase, DefaultBase):
     """
     An embedding with a default value for each field. The default is returned for
@@ -245,18 +145,21 @@ class DefaultEmbedding(UniformBase, DefaultBase):
     """
 
     def __init__(
-        self, embedding_size: int, alpha: int, device: Union[str, torch.device] = "cpu"
+        self,
+        embedding_size: int = 10,
+        alpha: int = 20,
+        device: Union[str, torch.device] = "cpu",
     ):
         """
         Parameters
         ----------
-        embedding_size : int
-            size of each value's embedding vector
-        alpha : int
+        embedding_size : int, optional
+            size of each value's embedding vector; default is 10
+        alpha : int, optional
             controls the weighting of each embedding vector with the default;
             when `alpha`-many values are seen at initialization; the final
             vector is evenly weighted; the influence of the default is decreased
-            with either higher counts or lower `alpha`
+            with either higher counts or lower `alpha`; default is 20
         device : string or torch.device
 
         """

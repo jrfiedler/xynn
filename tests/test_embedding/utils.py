@@ -1,6 +1,13 @@
 
 import numpy as np
 import pandas as pd
+from torch import nn
+from torch.utils.data import Dataset
+
+
+class Reshape(nn.Module):
+    def forward(self, X):
+        return X.reshape((X.shape[0], -1))
 
 
 def example_data():
@@ -14,3 +21,15 @@ def example_data():
         }
     )
     return data
+
+
+class SimpleDataset(Dataset):
+
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
