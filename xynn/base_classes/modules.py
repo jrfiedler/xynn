@@ -19,6 +19,7 @@ else:
     HAS_PL = True
 
 from ..embedding import EmbeddingBase
+from ..embedding.ragged import RaggedBase
 
 
 MODULE_INIT_DOC = """
@@ -155,39 +156,71 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         """
         return sum(param.numel() for param in self.parameters() if param.requires_grad)
 
-    def embed(self, X_num: Tensor, X_cat: Tensor) -> Tuple[Tensor, Tensor]:
+    def embed(
+        self,
+        X_num: Tensor,
+        X_cat: Tensor,
+        num_dim: int = 3,
+        concat: bool = True,
+    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         """
         Embed the numeric and categorical input fields.
 
         Parameters
         ----------
-        X_num : torch.Tensor or numpy.ndarray
-        X_cat : torch.Tensor or numpy.ndarray
+        X_num : torch.Tensor or numpy.ndarray or None
+        X_cat : torch.Tensor or numpy.ndarray or None
+        num_dim : 2 or 3, optional
+            default is 3
+        concat : bool, optional
+            whether to concatenate outputs into a single Tensor;
+            if True, concatenation is on dim 1; default is True
 
         Return
         ------
-        torch.Tensor
+        torch.Tensor if concat else (torch.Tensor, torch.Tensor)
 
         """
-        if self.embedding_num and X_num.shape[1]:
+        if X_num is None and X_cat is None:
+            raise ValueError("X_num and X_cat cannot both be None")
+
+        if num_dim not in (2, 3):
+            raise ValueError(f"num_dim should be 2 or 3, got {num_dim}")
+
+        if num_dim == 3 and (
+            isinstance(self.embedding_num, RaggedBase)
+            or isinstance(self.embedding_cat, RaggedBase)
+        ):
+            raise ValueError("cannot use num_dim=3 with ragged embeddings")
+
+        # handle X_num
+        if X_num is not None and X_num.shape[1] and self.embedding_num:
             X_num_emb = self.embedding_num(X_num)
-        elif self.embedding_cat:
+        elif (X_num is not None and X_num.shape[1]) or not self.embedding_cat:
+            if num_dim == 3:
+                X_num_emb = X_num.reshape((X_num.shape[0], X_num.shape[1], 1))
+            else:
+                X_num_emb = X_num
+        else:  # (X_num is None or not X_num.shape[1]) and self.embedding_cat
             X_num_emb = torch.empty(
                 (X_cat.shape[0], 0, self.embedding_cat.embedding_size),
                 device=self._device,
             )
-        else:
-            X_num_emb = X_num
 
-        if self.embedding_cat and X_cat.shape[1]:
+        # handle X_cat
+        if X_cat is not None and X_cat.shape[1] and self.embedding_cat:
             X_cat_emb = self.embedding_cat(X_cat)
-        elif self.embedding_num:
-            X_cat_emb = torch.empty(
-                (X_num.shape[0], 0, self.embedding_num.embedding_size),
-                device=self._device
-            )
         else:
-            X_cat_emb = X_cat
+            embed_dim = self.embedding_num.embedding_size if self.embedding_num else 1
+            X_cat_emb = torch.empty((X_num.shape[0], 0, embed_dim), device=self._device)
+
+        # reshape, if necessary
+        if num_dim == 2:
+            X_num_emb = X_num_emb.reshape((X_num_emb.shape[0], -1))
+            X_cat_emb = X_cat_emb.reshape((X_cat_emb.shape[0], -1))
+
+        if concat:
+            return torch.cat([X_num_emb, X_cat_emb], dim=1)
 
         return X_num_emb, X_cat_emb
 

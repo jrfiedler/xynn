@@ -295,7 +295,7 @@ class AutoInt(BaseNN):
         return self.mlp.weight_sum()
 
     def forward(self, X_num, X_cat):
-        embedded = torch.cat(self.embed(X_num, X_cat), dim=1)
+        embedded = self.embed(X_num, X_cat)
         out = self.attn_interact(embedded)
         if self.mlp is not None:
             embedded_2d = embedded.reshape((embedded.shape[0], -1))

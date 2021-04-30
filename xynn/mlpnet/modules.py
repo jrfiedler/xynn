@@ -116,6 +116,5 @@ class MLPNet(BaseNN):
         torch.Tensor
 
         """
-        embedded = torch.cat(self.embed(X_num, X_cat), dim=1)
-        embedded = embedded.reshape((X_num.shape[0], -1))
+        embedded = self.embed(X_num, X_cat, num_dim=2)
         return self.mlp(embedded)

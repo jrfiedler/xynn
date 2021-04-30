@@ -81,13 +81,15 @@ class SimpleMLP(BaseNN):
     def __init__(
         self,
         task="regression",
+        embedding_num=None,
+        embedding_cat=None,
         input_size=11,
         hidden_sizes=(7,),
         output_size=3,
         loss_fn="auto",
         mix_value=None,
     ):
-        super().__init__(task, None, None, loss_fn)
+        super().__init__(task, embedding_num, embedding_cat, loss_fn)
         layers = []
         for size in hidden_sizes:
             layers.append(nn.Linear(input_size, size))
