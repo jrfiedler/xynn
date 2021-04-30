@@ -209,6 +209,7 @@ class RaggedEmbedding(RaggedBase, BasicBase):
         idxs: List[List[int]] = [[] for _ in range(self.num_fields)]
         for row in X:
             for col, val in enumerate(row):
+                val = val.item()
                 if _isnan(val):
                     idx = self.lookup_nan[col]
                 else:
@@ -359,6 +360,7 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
         idxs_primary: List[List[int]] = [[] for _ in range(self.num_fields)]
         for row in X:
             for col, val in enumerate(row):
+                val = val.item()
                 if _isnan(val):
                     idx, count = self.lookup_nan.get(col, (0, 0))
                 else:

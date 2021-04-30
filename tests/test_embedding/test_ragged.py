@@ -85,6 +85,37 @@ def test_raggedembedding_with_numpy_example():
     )
 
 
+def test_raggedembedding_with_pytorch_example():
+    data_cat = torch.from_numpy(example_data()[["cat_a", "cat_b", "cat_c"]].values)
+    embedding = RaggedEmbedding(embedding_size="sqrt").fit(data_cat)
+    data_test = pd.DataFrame(
+        {
+            "cat_a": [0, 1],
+            "cat_b": [0, 2],
+            "cat_c": [0, np.nan],
+        }
+    )
+    output = embedding(torch.from_numpy(data_test.values))
+    weight = [emb.weight for emb in embedding.embedding]
+    assert [w.shape for w in weight] == [(4, 2), (3, 2), (3, 2)]
+    assert output.shape == (2, 6)
+    # test returned vectors vs weight matrix
+    assert torch.all(output[0, :2] == weight[0][0]).item()
+    assert torch.all(output[0, 2:4] == weight[1][0]).item()
+    assert (  # can't be sure of the order of categories with NaN
+        torch.all(output[0, 4:] == weight[2][0]).item()
+        or torch.all(output[0, 4:] == weight[2][1]).item()
+        or torch.all(output[0, 4:] == weight[2][2]).item()
+    )
+    assert torch.all(output[1, :2] == weight[0][1]).item()
+    assert torch.all(output[1, 2:4] == weight[1][2]).item()
+    assert (  # can't be sure of the order of categories with NaN
+        torch.all(output[1, 4:] == weight[2][0]).item()
+        or torch.all(output[1, 4:] == weight[2][1]).item()
+        or torch.all(output[1, 4:] == weight[2][2]).item()
+    )
+
+
 def test_raggedembedding_weight_sum():
     data_cat = example_data()[["cat_a", "cat_b", "cat_c"]].values
     embedding = RaggedEmbedding(embedding_size="sqrt")
@@ -232,7 +263,7 @@ def test_raggeddefaultembedding_with_tensor_example():
             "cat_c": [0, np.nan, 2],
         }
     )
-    output = embedding(data_test.values)
+    output = embedding(torch.from_numpy(data_test.values))
     weight = [emb.weight for emb in embedding.embedding]
     assert [w.shape for w in weight] == [(5, 2), (4, 3), (4, 2)]
     assert output.shape == (3, 7)
