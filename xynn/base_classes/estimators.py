@@ -14,7 +14,7 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torch.nn.functional import softmax
 
-from ..embedding import BasicEmbedding, LinearEmbedding, DefaultEmbedding
+from ..embedding import EmbeddingBase, BasicEmbedding, LinearEmbedding, DefaultEmbedding
 from ..dataset import TabularDataset
 from ..train import train, now
 from .modules import BaseNN
@@ -46,13 +46,10 @@ def _log(info, filepath):
 ESTIMATOR_INIT_DOC = """
 Parameters
 ----------
-embedding_size : int, optional
-    length of embedding vectors; default is 10
-embedding_alpha : int, optional
-    used to determine relative weighting between individual embedding
-    vector and the field's generic embedding vector; use lower values
-    to weight more toward individual embedding vectors; use values <= 0
-    to use an embedding without generic field vectors; default is 20
+embedding_num : "auto", embedding.EmbeddingBase, or None, optional
+    embedding for numeric fields; default is auto
+embedding_cat : "auto", embedding.EmbeddingBase, or None, optional
+    embedding for categorical fields; default is auto
 embedding_l1_reg : float, optional
     value for l1 regularization of embedding vectors; default is 0.0
 embedding_l2_reg : float, optional
@@ -100,8 +97,8 @@ class BaseEstimator(metaclass=ABCMeta):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         mlp_l1_reg: float = 0.0,
@@ -112,8 +109,8 @@ class BaseEstimator(metaclass=ABCMeta):
         model_kwargs: Optional[Dict[str, Any]] = None,
     ):
         self.task = ""
-        self.embedding_size = embedding_size
-        self.embedding_alpha = embedding_alpha
+        self.embedding_num = embedding_num
+        self.embedding_cat = embedding_cat
         self.embedding_l1_reg = embedding_l1_reg
         self.embedding_l2_reg = embedding_l2_reg
         self.mlp_l1_reg = mlp_l1_reg
@@ -131,8 +128,8 @@ class BaseEstimator(metaclass=ABCMeta):
 
         # record init parameters, mostly for logging
         self.init_parameters = {
-            "embedding_size": embedding_size,
-            "embedding_alpha": embedding_alpha,
+            "embedding_num": embedding_num,
+            "embedding_cat": embedding_cat,
             "embedding_l1_reg": embedding_l1_reg,
             "embedding_l2_reg": embedding_l2_reg,
         }
@@ -202,31 +199,37 @@ class BaseEstimator(metaclass=ABCMeta):
         )
         self._model.configure_optimizers()
 
-    def _embeddings(self, X_num, X_cat):
+    def _create_embeddings(self, X_num, X_cat):
         # numeric embedding
-        if X_num.shape[1] and self.model_kwargs.get("embed_numeric_fields", True):
-            embedding_num = LinearEmbedding(self.embedding_size, self._device)
-            embedding_num.fit(X_num)
+        if X_num.shape[1]:
+            if self.embedding_num is None:
+                if self._require_numeric_embedding:
+                    raise ValueError(
+                        "embedding_num was set to None; "
+                        f"expected zero numeric columns, got {X_num.shape[1]}"
+                    )
+            elif isinstance(self.embedding_num, EmbeddingBase):
+                self.embedding_num.fit(X_num)
+            else: # initialized with embedding_num = "auto"
+                self.embedding_num = LinearEmbedding(device=self._device)
+                self.embedding_num.fit(X_num)
         else:
-            embedding_num = None
+            self.embedding_num = None
 
         # categorical embedding
         if X_cat.shape[1]:
-            if self.embedding_alpha > 0:
-                embedding_cat = DefaultEmbedding(
-                    self.embedding_size,
-                    alpha=self.embedding_alpha,
-                    device=self._device,
+            if self.embedding_cat is None:
+                raise ValueError(
+                    "embedding_cat was set to None; "
+                    f"expected zero categorical columns, got {X_cat.shape[1]}"
                 )
-            else:
-                embedding_cat = BasicEmbedding(
-                    self.embedding_size, device=self._device
-                )
-            embedding_cat.fit(X_cat)
+            elif isinstance(self.embedding_cat, EmbeddingBase):
+                pass
+            else:  # initialized with embedding_cat = "auto"
+                self.embedding_cat = DefaultEmbedding(device=self._device)
+            self.embedding_cat.fit(X_cat)
         else:
-            embedding_cat = None
-
-        return embedding_num, embedding_cat
+            self.embedding_cat = None
 
     @abstractmethod
     def _create_model(self, embedding_num, embedding_cat):
@@ -406,8 +409,8 @@ class BaseClassifier(BaseEstimator):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         mlp_l1_reg: float = 0.0,
@@ -418,8 +421,8 @@ class BaseClassifier(BaseEstimator):
         **model_kwargs,
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             mlp_l1_reg=mlp_l1_reg,
@@ -432,12 +435,12 @@ class BaseClassifier(BaseEstimator):
         self.loss_fn = nn.CrossEntropyLoss() if loss_fn == "auto" else loss_fn
         self.classes = {}
 
-    def _create_model(self, embedding_num, embedding_cat):
+    def _create_model(self):
         self._model = self._model_class(
             task="classification",
             output_size=len(self.classes),
-            embedding_num=embedding_num,
-            embedding_cat=embedding_cat,
+            embedding_num=self.embedding_num,
+            embedding_cat=self.embedding_cat,
             loss_fn=self.loss_fn,
             device=self._device,
             **self.model_kwargs
@@ -459,8 +462,8 @@ class BaseClassifier(BaseEstimator):
             self.classes = {old : new for new, old in enumerate(np.unique(y))}
         X_num, X_cat, y = self._convert_xy(X_num, X_cat, y)
         if self._model is None or not warm_start:
-            embedding_num, embedding_cat = self._embeddings(X_num, X_cat)
-            self._create_model(embedding_num, embedding_cat)
+            self._create_embeddings(X_num, X_cat)
+            self._create_model()
         return X_num, X_cat, y
 
     def predict(self, X_num, X_cat):
@@ -516,8 +519,8 @@ class BaseRegressor(BaseEstimator):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         mlp_l1_reg: float = 0.0,
@@ -528,8 +531,8 @@ class BaseRegressor(BaseEstimator):
         **model_kwargs,
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             mlp_l1_reg=mlp_l1_reg,
@@ -542,12 +545,12 @@ class BaseRegressor(BaseEstimator):
         self.loss_fn = nn.MSELoss() if loss_fn == "auto" else loss_fn
         self.num_targets = 0
 
-    def _create_model(self, embedding_num, embedding_cat):
+    def _create_model(self):
         self._model = self._model_class(
             task="regression",
             output_size=self.num_targets,
-            embedding_num=embedding_num,
-            embedding_cat=embedding_cat,
+            embedding_num=self.embedding_num,
+            embedding_cat=self.embedding_cat,
             loss_fn=self.loss_fn,
             device=self._device,
             **self.model_kwargs,
@@ -567,8 +570,8 @@ class BaseRegressor(BaseEstimator):
             self.num_targets = y.shape[1] if len(y.shape) > 1 else 1
         X_num, X_cat, y = self._convert_xy(X_num, X_cat, y)
         if self._model is None or not warm_start:
-            embedding_num, embedding_cat = self._embeddings(X_num, X_cat)
-            self._create_model(embedding_num, embedding_cat)
+            self._create_embeddings(X_num, X_cat)
+            self._create_model()
         return X_num, X_cat, y
 
     def predict(self, X_num, X_cat):

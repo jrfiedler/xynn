@@ -17,7 +17,8 @@ class SimpleMLPEstimator:
 
     def __init__(
         self,
-        embedding_alpha=4,
+        embedding_num="auto",
+        embedding_cat="auto",
         hidden_sizes=(7,),
         loss_fn="auto",
         device="cpu",
@@ -29,35 +30,37 @@ class SimpleMLPEstimator:
         self.seed = seed
         self.device = torch.device(device)
         self.init_parameters = {"loss_fn": loss_fn, "seed": seed, "device": device}
-        self.embedding_size = 3
-        self.embedding_alpha = embedding_alpha
+        self.embedding_num = embedding_num
+        self.embedding_cat = embedding_cat
         self.hidden_sizes = hidden_sizes
         self.model_kwargs = {}
         self._device = device
+        self._require_numeric_embedding = False
         if seed is not None:
             _set_seed(seed)
 
-    def _create_model(self, embedding_num, embedding_cat):
+    def _create_model(self):
         self._model = SimpleMLP(
             task=self.task,
             hidden_sizes=self.hidden_sizes,
             loss_fn=self.loss_fn,
         )
-        self._model.embedding_num = embedding_num
-        self._model.embedding_cat = embedding_cat
+        self._model.embedding_num = self.embedding_num
+        self._model.embedding_cat = self.embedding_cat
 
 
 class SimpleMLPRegressor(SimpleMLPEstimator, BaseRegressor):
 
     def __init__(
         self,
-        embedding_alpha=4,
+        embedding_num="auto",
+        embedding_cat="auto",
         hidden_sizes=(7,),
         loss_fn="auto",
         device="cpu",
         seed=None,
     ):
-        super().__init__(embedding_alpha, hidden_sizes, loss_fn, device, seed)
+        super().__init__(embedding_num, embedding_cat, hidden_sizes, loss_fn, device, seed)
         self.task = "regression"
         self.num_targets = 0
         self.init_parameters["task"] = "regression"
@@ -67,13 +70,14 @@ class SimpleMLPClassifier(SimpleMLPEstimator, BaseClassifier):
 
     def __init__(
         self,
-        embedding_alpha=4,
+        embedding_num="auto",
+        embedding_cat="auto",
         hidden_sizes=(7,),
         loss_fn="auto",
         device="cpu",
         seed=None,
     ):
-        super().__init__(embedding_alpha, hidden_sizes, loss_fn, device, seed)
+        super().__init__(embedding_num, embedding_cat, hidden_sizes, loss_fn, device, seed)
         self.task = "classification"
         self.classes = {}
         self.init_parameters["task"] = "classification"
@@ -88,35 +92,30 @@ def test_some_values_before_nn_created():
 
 def test__embeddings_with_both_X_num_and_X_cat():
     X_num, X_cat, _ = simple_data()
+
     model = SimpleMLPRegressor()
+    model._create_embeddings(X_num, X_cat)
+    assert isinstance(model.embedding_num, LinearEmbedding)
+    assert isinstance(model.embedding_cat, DefaultEmbedding)
 
-    model.embedding_alpha = 3
-    embedding_num, embedding_cat = model._embeddings(X_num, X_cat)
-    assert isinstance(embedding_num, LinearEmbedding)
-    assert isinstance(embedding_cat, DefaultEmbedding)
-
-    model.embedding_alpha = 0
-    embedding_num, embedding_cat = model._embeddings(X_num, X_cat)
-    assert isinstance(embedding_num, LinearEmbedding)
-    assert isinstance(embedding_cat, BasicEmbedding)
+    model = SimpleMLPRegressor(embedding_cat=BasicEmbedding())
+    model._create_embeddings(X_num, X_cat)
+    assert isinstance(model.embedding_num, LinearEmbedding)
+    assert isinstance(model.embedding_cat, BasicEmbedding)
 
 
 def test__embeddings_without_X_num_or_X_cat():
     X_num, X_cat, _ = simple_data()
+
     model = SimpleMLPRegressor()
-    model.embedding_alpha = 3
+    model._create_embeddings(torch.empty((X_cat.shape[0], 0)), X_cat)
+    assert model.embedding_num is None
+    assert isinstance(model.embedding_cat, DefaultEmbedding)
 
-    embedding_num, embedding_cat = model._embeddings(
-        torch.empty((X_cat.shape[0], 0)), X_cat
-    )
-    assert embedding_num is None
-    assert isinstance(embedding_cat, DefaultEmbedding)
-
-    embedding_num, embedding_cat = model._embeddings(
-        X_num, torch.empty((X_cat.shape[0], 0))
-    )
-    assert isinstance(embedding_num, LinearEmbedding)
-    assert embedding_cat is None
+    model = SimpleMLPRegressor()
+    model._create_embeddings(X_num, torch.empty((X_cat.shape[0], 0)))
+    assert isinstance(model.embedding_num, LinearEmbedding)
+    assert model.embedding_cat is None
 
 
 def test_that__convert_x_raises_error_when_both_X_num_and_X_cat_are_None():
@@ -225,11 +224,11 @@ def test_some_method_return_values_after_nn_created():
     e1, e2 = model.embedding_sum()
     assert w1 > 0 and w2 > 0
     assert e1 > 0 and e2 > 0
-    # embedding_num: 10 * 3
-    # embedding_cat: 3 * 3
+    # embedding_num: 10 * 10
+    # embedding_cat: 3 * 10
     # 1st layer w: 11 * 7, b: 7
     # 2nd layer w:  7 * 3, b: 3
-    assert model.num_parameters() == 10 * 3 + 3 * 3 + 11 * 7 + 7 + 7 * 3 + 3
+    assert model.num_parameters() == 10 * 10 + 3 * 10 + 11 * 7 + 7 + 7 * 3 + 3
 
 
 def test_classifier__convert_y_with_tensor():
@@ -254,7 +253,7 @@ def test_classifier__convert_y_with_numpy_array():
 
 
 def test_classifier__fit_init():
-    model = SimpleMLPClassifier(embedding_alpha=0)
+    model = SimpleMLPClassifier(embedding_cat=BasicEmbedding())
     assert model.classes == {}
     assert model._model is None
 

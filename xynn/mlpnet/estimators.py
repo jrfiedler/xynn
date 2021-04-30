@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from ..base_classes.estimators import BaseClassifier, BaseRegressor, ESTIMATOR_INIT_DOC
+from ..embedding import EmbeddingBase
 from .modules import MLPNet
 
 
@@ -25,8 +26,8 @@ class MLPClassifier(BaseClassifier):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
@@ -44,8 +45,8 @@ class MLPClassifier(BaseClassifier):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             mlp_hidden_sizes=mlp_hidden_sizes,
@@ -63,6 +64,7 @@ class MLPClassifier(BaseClassifier):
             device=device,
         )
         self._model_class = MLPNet
+        self._require_numeric_embedding = False
 
     __init__.__doc__ = INIT_DOC
 
@@ -77,8 +79,8 @@ class MLPRegressor(BaseRegressor):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
@@ -96,8 +98,8 @@ class MLPRegressor(BaseRegressor):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             mlp_hidden_sizes=mlp_hidden_sizes,
@@ -115,5 +117,6 @@ class MLPRegressor(BaseRegressor):
             device=device,
         )
         self._model_class = MLPNet
+        self._require_numeric_embedding = False
 
     __init__.__doc__ = INIT_DOC

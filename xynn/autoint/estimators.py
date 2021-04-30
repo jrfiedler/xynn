@@ -11,6 +11,7 @@ from torch import nn
 
 from .modules import AutoInt
 from ..base_classes.estimators import BaseClassifier, BaseRegressor, ESTIMATOR_INIT_DOC
+from ..embedding import EmbeddingBase
 
 
 INIT_DOC = ESTIMATOR_INIT_DOC.format(
@@ -44,8 +45,8 @@ class AutoIntClassifier(BaseClassifier):
 
     def __init__(
         self,
-        embedding_size: int=10,
-        embedding_alpha: int=20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float=0.0,
         embedding_l2_reg: float=0.0,
         attn_embedding_size: int = 8,
@@ -70,8 +71,8 @@ class AutoIntClassifier(BaseClassifier):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             attn_embedding_size=attn_embedding_size,
@@ -96,6 +97,7 @@ class AutoIntClassifier(BaseClassifier):
             device=device,
         )
         self._model_class = AutoInt
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC
 
@@ -110,8 +112,8 @@ class AutoIntRegressor(BaseRegressor):
 
     def __init__(
         self,
-        embedding_size: int=10,
-        embedding_alpha: int=20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float=0.0,
         embedding_l2_reg: float=0.0,
         attn_embedding_size: int = 8,
@@ -136,8 +138,8 @@ class AutoIntRegressor(BaseRegressor):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             attn_embedding_size=attn_embedding_size,
@@ -162,5 +164,6 @@ class AutoIntRegressor(BaseRegressor):
             device=device,
         )
         self._model_class = AutoInt
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC

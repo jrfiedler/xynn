@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from ..base_classes.estimators import BaseClassifier, BaseRegressor, ESTIMATOR_INIT_DOC
+from ..embedding import EmbeddingBase
 from .modules import PNN, PNNPlus
 
 
@@ -36,8 +37,8 @@ class PNNClassifier(BaseClassifier):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         product_type: str = "outer",
@@ -56,8 +57,8 @@ class PNNClassifier(BaseClassifier):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             product_type=product_type,
@@ -76,6 +77,7 @@ class PNNClassifier(BaseClassifier):
             device=device,
         )
         self._model_class = PNN
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC
 
@@ -90,8 +92,8 @@ class PNNRegressor(BaseRegressor):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         product_type: str = "outer",
@@ -110,8 +112,8 @@ class PNNRegressor(BaseRegressor):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             product_type=product_type,
@@ -130,6 +132,7 @@ class PNNRegressor(BaseRegressor):
             device=device,
         )
         self._model_class = PNN
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC
 
@@ -144,8 +147,8 @@ class PNNPlusClassifier(BaseClassifier):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         product_type: str = "outer",
@@ -165,8 +168,8 @@ class PNNPlusClassifier(BaseClassifier):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             product_type=product_type,
@@ -186,6 +189,7 @@ class PNNPlusClassifier(BaseClassifier):
             device=device,
         )
         self._model_class = PNNPlus
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC
 
@@ -200,8 +204,8 @@ class PNNPlusRegressor(BaseRegressor):
 
     def __init__(
         self,
-        embedding_size: int = 10,
-        embedding_alpha: int = 20,
+        embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
+        embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         product_type: str = "outer",
@@ -221,8 +225,8 @@ class PNNPlusRegressor(BaseRegressor):
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__(
-            embedding_size=embedding_size,
-            embedding_alpha=embedding_alpha,
+            embedding_num=embedding_num,
+            embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             product_type=product_type,
@@ -242,5 +246,6 @@ class PNNPlusRegressor(BaseRegressor):
             device=device,
         )
         self._model_class = PNNPlus
+        self._require_numeric_embedding = True
 
     __init__.__doc__ = INIT_DOC
