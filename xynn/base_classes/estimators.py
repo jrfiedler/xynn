@@ -5,6 +5,7 @@ Base classes for estimators (Scikit-learn-style models)
 import os
 import json
 import random
+import inspect
 from abc import ABCMeta, abstractmethod
 from typing import Union, List, Tuple, Callable, Dict, Optional, Any, Type
 
@@ -41,6 +42,14 @@ def _log(info, filepath):
         json.dump(info, outfile, indent=4)
         outfile.flush()
         os.fsync(outfile.fileno())
+
+
+def _param_json(value):
+    if inspect.isclass(value):
+        return value.__name__
+    if isinstance(value, EmbeddingBase):
+        return str(value)
+    return value
 
 
 ESTIMATOR_INIT_DOC = """
@@ -127,27 +136,24 @@ class BaseEstimator(metaclass=ABCMeta):
             _set_seed(seed)
 
         # record init parameters, mostly for logging
-        self.init_parameters = {
+        init_params_bef = {
             "embedding_num": embedding_num,
             "embedding_cat": embedding_cat,
             "embedding_l1_reg": embedding_l1_reg,
             "embedding_l2_reg": embedding_l2_reg,
         }
-        self.init_parameters.update(
-            {
-                k: v if not hasattr(v, "__call__") else v.__name__
-                for k, v in model_kwargs.items()
-            }
-        )
-        self.init_parameters.update(
-            {
-                "mlp_l1_reg": mlp_l1_reg,
-                "mlp_l2_reg": mlp_l2_reg,
-                "loss_fn": loss_fn,
-                "seed": seed,
-                "device": device
-            }
-        )
+        init_params_aft = {
+            "mlp_l1_reg": mlp_l1_reg,
+            "mlp_l2_reg": mlp_l2_reg,
+            "loss_fn": loss_fn,
+            "seed": seed,
+            "device": device
+        }
+        self.init_parameters = {
+            k: _param_json(v)
+            for params in (init_params_bef, model_kwargs, init_params_aft)
+            for k, v in params.items()
+        }
 
     def mlp_weight_sum(self) -> Tuple[float, float]:
         """
