@@ -19,7 +19,14 @@ from ..embedding import check_embeddings
 from ..embedding.common import EmbeddingBase
 
 
-INIT_DOC = MODULE_INIT_DOC.format("")
+INIT_DOC = MODULE_INIT_DOC.format(
+    textwrap.dedent(
+        """\
+        num_numeric_fields : int or "auto", optional
+            an integer must be specified when embedding_num is None;
+            default is \"auto\""""
+    )
+)
 
 
 class MLPNet(BaseNN):
@@ -31,6 +38,7 @@ class MLPNet(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        num_numeric_fields: Union[int, str] = "auto",
         mlp_hidden_sizes: Union[int, Iterable[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -46,9 +54,16 @@ class MLPNet(BaseNN):
 
         embed_info = check_embeddings(embedding_num, embedding_cat)
 
+        if embedding_num is not None:
+            input_size = embed_info.output_size
+        elif not isinstance(num_numeric_fields, int):
+            raise TypeError("when embedding_num is None, num_numeric_fields must be an integer")
+        else:
+            input_size = embed_info.output_size + num_numeric_fields
+
         self.mlp = MLP(
             task,
-            input_size=embed_info.output_size,
+            input_size=input_size,
             hidden_sizes=mlp_hidden_sizes,
             output_size=output_size,
             activation=mlp_activation,

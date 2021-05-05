@@ -25,6 +25,7 @@ def test_that_mlpnet_uses_basenn_init():
         output_size=3,
         embedding_num=embedding_num,
         embedding_cat=None,
+        num_numeric_fields=20,
     )
 
     assert model.task == "classification"
@@ -45,6 +46,7 @@ def test_that_activation_and_sizes_are_passed_to_mlp_module():
         output_size=3,
         embedding_num=embedding_num,
         embedding_cat=None,
+        num_numeric_fields=20,
         mlp_activation=nn.ReLU,
         mlp_hidden_sizes=(512, 128, 32),
         mlp_use_bn=False,
@@ -73,6 +75,7 @@ def test_that_more_parameters_are_passed_to_mlp_module():
         output_size=3,
         embedding_num=embedding_num,
         embedding_cat=None,
+        num_numeric_fields=20,
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_dropout=0.1,
@@ -115,6 +118,7 @@ def test_mlp_weight():
         output_size=1,
         embedding_num=SimpleEmbedding(20, 3),
         embedding_cat=None,
+        num_numeric_fields=3,
         mlp_use_bn=False,
         mlp_leaky_gate=False,
         mlp_use_skip=False,
@@ -138,6 +142,7 @@ def test_that_mlpnet_learns():
         output_size=1,
         embedding_num=embedding_num,
         embedding_cat=None,
+        num_numeric_fields=10,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_leaky_gate=False,

@@ -7,6 +7,7 @@ from torch import nn
 import numpy as np
 
 from xynn.base_classes.estimators import _set_seed
+from xynn.embedding import DenseEmbedding, RaggedEmbedding
 from xynn.mlpnet import MLPRegressor, MLPClassifier
 
 from ..common import check_estimator_learns
@@ -37,3 +38,28 @@ def test_that_mlpclassifier_learns():
         mlp_use_skip=False,
     )
     check_estimator_learns(estimator, task="regression", data=(X, None, y))
+
+
+def test_that_mlpregressor_allows_dense_and_ragged_embeddings():
+    _set_seed(10101)
+    estimator = MLPClassifier(
+        embedding_num=DenseEmbedding(),
+        embedding_cat=RaggedEmbedding(),
+        mlp_hidden_sizes=[10, 8, 8, 6],
+        mlp_use_bn=False,
+        mlp_leaky_gate=False,
+        mlp_use_skip=False,
+    )
+    check_estimator_learns(estimator, task="regression")
+
+
+def test_that_mlpclassifier_doesnt_require_numeric_embedding():
+    _set_seed(10101)
+    estimator = MLPClassifier(
+        embedding_num=None,
+        mlp_hidden_sizes=[10, 8, 8, 6],
+        mlp_use_bn=False,
+        mlp_leaky_gate=False,
+        mlp_use_skip=False,
+    )
+    check_estimator_learns(estimator, task="regression")

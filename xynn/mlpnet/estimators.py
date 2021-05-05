@@ -68,6 +68,18 @@ class MLPClassifier(BaseClassifier):
 
     __init__.__doc__ = INIT_DOC
 
+    def _create_model(self):
+        self._model = self._model_class(
+            task="classification",
+            output_size=len(self.classes),
+            embedding_num=self.embedding_num,
+            embedding_cat=self.embedding_cat,
+            num_numeric_fields=self._num_numeric_fields,
+            loss_fn=self.loss_fn,
+            device=self._device,
+            **self.model_kwargs
+        )
+
 
 class MLPRegressor(BaseRegressor):
     """
@@ -120,3 +132,15 @@ class MLPRegressor(BaseRegressor):
         self._require_numeric_embedding = False
 
     __init__.__doc__ = INIT_DOC
+
+    def _create_model(self):
+        self._model = self._model_class(
+            task="regression",
+            output_size=self.num_targets,
+            embedding_num=self.embedding_num,
+            embedding_cat=self.embedding_cat,
+            num_numeric_fields=self._num_numeric_fields,
+            loss_fn=self.loss_fn,
+            device=self._device,
+            **self.model_kwargs,
+        )
