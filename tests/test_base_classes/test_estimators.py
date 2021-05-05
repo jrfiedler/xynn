@@ -140,15 +140,22 @@ def test_that__convert_x_raises_error_with_shape_mismatch():
 
 def test__convert_x_with_tensors_and_one_of_X_num_and_X_cat():
     X_num, X_cat, y = simple_data()
-    model = SimpleMLPRegressor()
 
+    model = SimpleMLPRegressor()
     X_num_out, X_cat_out = model._convert_x(X_num, None, y)
     assert X_num is X_num_out
     assert X_cat_out.shape == (300, 0)
+    # test that num_numeric_fields has been set
+    assert model._num_numeric_fields == 10
+    assert model._num_categorical_fields == 0
 
+    model = SimpleMLPRegressor()
     X_num_out, X_cat_out = model._convert_x(None, X_cat, y)
     assert X_num_out.shape == (300, 0)
     assert X_cat is X_cat_out
+    # test that num_categorical_fields has been set
+    assert model._num_numeric_fields == 0
+    assert model._num_categorical_fields == 1
 
 
 def test__convert_xy_with_tensors_and_both_X_num_and_X_cat():
@@ -157,6 +164,9 @@ def test__convert_xy_with_tensors_and_both_X_num_and_X_cat():
     X_num_out, X_cat_out = model._convert_x(X_num, X_cat, y)
     assert X_num is X_num_out
     assert X_cat is X_cat_out
+    # test that num_numeric_fields and num_categorical_fields have been set
+    assert model._num_numeric_fields == 10
+    assert model._num_categorical_fields == 1
 
 
 def test__convert_x_with_numpy_arrays_and_both_X_num_and_X_cat():
@@ -175,6 +185,9 @@ def test__convert_x_with_numpy_arrays_and_both_X_num_and_X_cat():
         X_cat_orig[i, 0].item() == X_cat_out[i, 0].item()
         for i in range(X_cat_orig.shape[0])
     )
+    # test that num_numeric_fields and num_categorical_fields have been set
+    assert model._num_numeric_fields == 10
+    assert model._num_categorical_fields == 1
 
 
 def test_regressor__convert_y_with_tensor():
@@ -342,8 +355,6 @@ def test_classifier_fit_with_valid_set_and_warm_start():
     X_num_train, X_num_valid = X_num[:220], X_num[220:]
     X_cat_train, X_cat_valid = X_cat[:220], X_cat[220:]
     y_train, y_valid = y[:220], y[220:]
-
-    print(y.shape)
 
     logfile = NamedTemporaryFile()
 

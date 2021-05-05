@@ -252,9 +252,10 @@ class BaseEstimator(metaclass=ABCMeta):
         if X_num is None:
             X_num = torch.empty((X_cat.shape[0], 0), device=self._device)
             self._num_numeric_fields = 0
-        elif isinstance(X_num, np.ndarray):
-            X_num = torch.from_numpy(X_num).to(self._device, dtype=torch.float32)
+        else:
             self._num_numeric_fields = X_num.shape[1]
+            if isinstance(X_num, np.ndarray):
+                X_num = torch.from_numpy(X_num).to(self._device, dtype=torch.float32)
 
         if X_cat is None:
             X_cat = torch.empty((X_num.shape[0], 0), device=self._device)
