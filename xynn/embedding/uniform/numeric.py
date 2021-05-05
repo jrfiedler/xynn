@@ -46,6 +46,9 @@ class LinearEmbedding(UniformBase):
         self.to(device)
         self._isfit = False
 
+    def __repr__(self):
+        return f"LinearEmbedding({self.embedding_size}, {repr(self._device)})"
+
     def from_values(self, num_fields: int):
         """
         Create the embedding for the given number of fields
@@ -135,6 +138,12 @@ class DenseEmbedding(UniformBase):
         self._device = device
         self.to(device)
         self._isfit = False
+
+    def __repr__(self):
+        embed_size = self.embedding_size
+        activation = self.activation.__class__.__name__
+        device = repr(self._device)
+        return f"DenseEmbedding({embed_size}, {activation}, {device})"
 
     def from_values(self, num_fields: int):
         """

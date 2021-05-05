@@ -23,6 +23,13 @@ def test_that_raggedembedding_must_be_fit():
         embedding(data_test.values)
 
 
+def test_raggedembedding_repr():
+    embedding = RaggedEmbedding(embedding_size=[2, 3, 2])
+    assert repr(embedding) == "RaggedEmbedding([2, 3, 2], 'cpu')"
+    embedding = RaggedEmbedding()
+    assert repr(embedding) == "RaggedEmbedding('sqrt', 'cpu')"
+
+
 def test_raggedembedding_with_pandas_example():
     data_cat = example_data()[["cat_a", "cat_b", "cat_c"]]
     embedding = RaggedEmbedding(embedding_size=[3, 2, 2]).fit(data_cat)
@@ -157,7 +164,7 @@ def test_raggedembedding_raises_error_for_bad_embedding_size():
     with pytest.raises(ValueError, match=msg):
         embedding = RaggedEmbedding(embedding_size="surprise me")
 
-    msg = "embedding_size \['sqrt', 'log', 2\] not understood"
+    msg = r"embedding_size \['sqrt', 'log', 2\] not understood"
     with pytest.raises(TypeError, match=msg):
         embedding = RaggedEmbedding(embedding_size=["sqrt", "log", 2])
 
@@ -204,6 +211,13 @@ def test_that_raggeddefaultembedding_must_be_fit():
     msg = "need to call `fit` or `from_values` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
+
+
+def test_raggeddefaultembedding_repr():
+    embedding = RaggedDefaultEmbedding(embedding_size=[2, 3, 2], alpha=2)
+    assert repr(embedding) == "RaggedDefaultEmbedding([2, 3, 2], 2, 'cpu')"
+    embedding = RaggedDefaultEmbedding()
+    assert repr(embedding) == "RaggedDefaultEmbedding('sqrt', 20, 'cpu')"
 
 
 def test_raggeddefaultembedding_with_pandas_example():

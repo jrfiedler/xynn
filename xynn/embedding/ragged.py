@@ -121,6 +121,9 @@ class RaggedEmbedding(RaggedBase, BasicBase):
         self.to(device)
         self._isfit = False
 
+    def __repr__(self):
+        return f"RaggedEmbedding({repr(self.embedding_size)}, {repr(self._device)})"
+
     def from_values(
         self,
         uniques: List[Union[List, np.ndarray]],
@@ -271,6 +274,12 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
         self._device = device
         self.to(device)
         self._isfit = False
+
+    def __repr__(self):
+        embed_size = repr(self.embedding_size)
+        alpha = self.alpha
+        device = repr(self._device)
+        return f"RaggedDefaultEmbedding({embed_size}, {alpha}, {device})"
 
     def from_values(
         self,

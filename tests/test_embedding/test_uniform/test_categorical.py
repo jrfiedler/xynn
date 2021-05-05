@@ -25,6 +25,13 @@ def test_that_basicembedding_must_be_fit():
         embedding(data_test.values)
 
 
+def test_basicembedding_repr():
+    embedding = BasicEmbedding(embedding_size=2)
+    assert repr(embedding) == "BasicEmbedding(2, 'cpu')"
+    embedding = BasicEmbedding()
+    assert repr(embedding) == "BasicEmbedding(10, 'cpu')"
+
+
 def test_basicembedding_with_pandas_example():
     data_cat = example_data()[["cat_a", "cat_b", "cat_c"]]
     embedding = BasicEmbedding(embedding_size=2).fit(data_cat)
@@ -179,6 +186,13 @@ def test_that_defaultembedding_must_be_fit():
     msg = "need to call `fit` or `from_values` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
+
+
+def test_defaultembedding_repr():
+    embedding = DefaultEmbedding(embedding_size=2, alpha=2)
+    assert repr(embedding) == "DefaultEmbedding(2, 2, 'cpu')"
+    embedding = DefaultEmbedding()
+    assert repr(embedding) == "DefaultEmbedding(10, 20, 'cpu')"
 
 
 def test_defaultembedding_with_pandas_example():

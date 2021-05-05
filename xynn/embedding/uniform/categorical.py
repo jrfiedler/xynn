@@ -51,6 +51,9 @@ class BasicEmbedding(UniformBase, BasicBase):
         self.to(device)
         self._isfit = False
 
+    def __repr__(self):
+        return f"BasicEmbedding({repr(self.embedding_size)}, {repr(self._device)})"
+
     def from_values(
         self, uniques: List[Union[List, Tensor, np.ndarray]], has_nan: List[bool]
     ):
@@ -176,6 +179,12 @@ class DefaultEmbedding(UniformBase, DefaultBase):
         self._device = device
         self.to(device)
         self._isfit = False
+
+    def __repr__(self):
+        embed_size = self.embedding_size
+        alpha = self.alpha
+        device = repr(self._device)
+        return f"DefaultEmbedding({embed_size}, {alpha}, {device})"
 
     def from_values(self, unique_counts: List[Dict[Any, int]], nan_counts: List[int]):
         """

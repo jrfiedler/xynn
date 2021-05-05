@@ -22,6 +22,13 @@ def test_that_linearembedding_must_be_fit():
         embedding(data_test.values)
 
 
+def test_linearembedding_repr():
+    embedding = LinearEmbedding(embedding_size=2)
+    assert repr(embedding) == "LinearEmbedding(2, 'cpu')"
+    embedding = LinearEmbedding()
+    assert repr(embedding) == "LinearEmbedding(10, 'cpu')"
+
+
 def test_linearembedding_with_pandas_example():
     data_num = example_data()[["num_a", "num_b"]]
     embedding = LinearEmbedding(embedding_size=3).fit(data_num)
@@ -117,6 +124,13 @@ def test_that_denseembedding_must_be_fit():
     msg = "need to call `fit` or `from_values` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
+
+
+def test_denseembedding_repr():
+    embedding = DenseEmbedding(embedding_size=(2, 2))
+    assert repr(embedding) == "DenseEmbedding((2, 2), LeakyReLU, 'cpu')"
+    embedding = DenseEmbedding(activation=nn.ReLU)
+    assert repr(embedding) == "DenseEmbedding((1, 10), ReLU, 'cpu')"
 
 
 def test_denseembedding_with_pandas_example():
