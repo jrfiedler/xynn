@@ -128,14 +128,24 @@ def test_that__convert_x_raises_error_when_both_X_num_and_X_cat_are_None():
 def test_that__convert_x_raises_error_with_shape_mismatch():
     X_num, X_cat, y = simple_data()
     model = SimpleMLPRegressor()
+
     with pytest.raises(
         ValueError,
         match=(
             r"mismatch in shapes for X_num torch.Size\(\[100, 10\]\), "
-            r"X_cat torch.Size\(\[300, 1\]\), y torch.Size\(\[300, 3\]\)"
+            r"X_cat torch.Size\(\[300, 1\]\)"
         )
     ):
         model._convert_x(X_num[:100], X_cat, y)
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"mismatch in shapes for X_num torch.Size\(\[100, 10\]\), "
+            r"X_cat torch.Size\(\[100, 1\]\), y torch.Size\(\[300, 3\]\)"
+        )
+    ):
+        model._convert_x(X_num[:100], X_cat[:100], y)
 
 
 def test__convert_x_with_tensors_and_one_of_X_num_and_X_cat():
@@ -485,6 +495,12 @@ def test_regressor_predict():
 
     assert torch.all(torch.eq(preds, linear.weight.T + linear.bias)).item()
 
+    # predict again with numpy array for X_num
+    X_num = np.array([[1.0 if row == col else 0.0 for col in range(7)] for row in range(11)])
+    preds_np = model.predict(X_num, X_cat)
+
+    assert torch.allclose(preds, preds_np)
+
 
 def test_that_classifier_predict_raises_error_before_fitting():
     X_num, X_cat, y = simple_data(task="classification")
@@ -523,6 +539,12 @@ def test_classifier_predict():
 
     assert torch.all(torch.eq(preds, expect)).item()
 
+    # predict again with numpy array for X_num
+    X_num = np.array([[1.0 if row == col else 0.0 for col in range(7)] for row in range(11)])
+    preds_np = model.predict(X_num, X_cat)
+
+    assert torch.all(preds == preds_np).item()
+
 
 def test_classifier_predict_proba():
     X_num, X_cat, y = simple_data(task="classification")
@@ -546,3 +568,9 @@ def test_classifier_predict_proba():
     expect = nn.functional.softmax(linear.weight.T + linear.bias, dim=1)
 
     assert torch.all(torch.eq(probas, expect)).item()
+
+    # predict again with numpy array for X_num
+    X_num = np.array([[1.0 if row == col else 0.0 for col in range(7)] for row in range(11)])
+    probas_np = model.predict_proba(X_num, X_cat)
+
+    assert torch.allclose(probas, probas_np)

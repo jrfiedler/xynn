@@ -245,7 +245,7 @@ class BaseEstimator(metaclass=ABCMeta):
     def _fit_init(self, X_num, X_cat, y, warm_start=False):
         return X_num, X_cat, y
 
-    def _convert_x(self, X_num, X_cat, y) -> Tuple[Tensor, Tensor]:
+    def _convert_x(self, X_num, X_cat, y=None) -> Tuple[Tensor, Union[Tensor, np.ndarray]]:
         if X_num is None and X_cat is None:
             raise TypeError("X_num and X_cat cannot both be None")
 
@@ -263,7 +263,11 @@ class BaseEstimator(metaclass=ABCMeta):
         else:
             self._num_categorical_fields = X_cat.shape[1]
 
-        if X_num.shape[0] != X_cat.shape[0] or X_num.shape[0] != y.shape[0]:
+        if X_num.shape[0] != X_cat.shape[0]:
+            raise ValueError(
+                f"mismatch in shapes for X_num {X_num.shape}, X_cat {X_cat.shape}"
+            )
+        if y is not None and X_num.shape[0] != y.shape[0]:
             raise ValueError(
                 f"mismatch in shapes for X_num {X_num.shape}, "
                 f"X_cat {X_cat.shape}, y {y.shape}"
@@ -489,6 +493,7 @@ class BaseClassifier(BaseEstimator):
         """
         if not self._model:
             raise RuntimeError("you need to fit the model first")
+        X_num, X_cat = self._convert_x(X_num, X_cat)
         self._model.eval()
         with torch.no_grad():
             raw = self._model(X_num, X_cat)
@@ -511,6 +516,7 @@ class BaseClassifier(BaseEstimator):
         """
         if not self._model:
             raise RuntimeError("you need to fit the model first")
+        X_num, X_cat = self._convert_x(X_num, X_cat)
         self._model.eval()
         with torch.no_grad():
             raw = self._model(X_num, X_cat)
@@ -597,6 +603,7 @@ class BaseRegressor(BaseEstimator):
         """
         if not self._model:
             raise RuntimeError("you need to fit the model first")
+        X_num, X_cat = self._convert_x(X_num, X_cat)
         self._model.eval()
         with torch.no_grad():
             preds = self._model(X_num, X_cat)
