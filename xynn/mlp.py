@@ -180,7 +180,7 @@ class MLP(nn.Module):
             if weighted_sum:
                 self.mix = nn.Parameter(torch.tensor([0.0]))
             else:
-                self.mix = torch.tensor([0.0])
+                self.mix = torch.tensor([0.0], device=device)
         else:
             self.skip_layers = None
             self.mix = None

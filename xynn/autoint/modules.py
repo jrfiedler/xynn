@@ -252,7 +252,7 @@ class AutoInt(BaseNN):
             if weighted_sum:
                 self.mix = nn.Parameter(torch.tensor([0.0]))
             else:
-                self.mix = torch.tensor([0.0])
+                self.mix = torch.tensor([0.0], device=device)
         else:
             self.mlp = None
             self.mix = None
