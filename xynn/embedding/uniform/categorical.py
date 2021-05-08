@@ -131,7 +131,7 @@ class BasicEmbedding(UniformBase, BasicBase):
                     idx = self.lookup[(col, val)]
                 idxs[-1].append(idx)
 
-        return self.embedding(torch.LongTensor(idxs, device=self._device))
+        return self.embedding(torch.tensor(idxs, dtype=torch.int64, device=self._device))
 
 
 class DefaultEmbedding(UniformBase, DefaultBase):
@@ -269,7 +269,7 @@ class DefaultEmbedding(UniformBase, DefaultBase):
                 list_weights[-1].append([count / (count + self.alpha)])
                 idxs_primary[-1].append(idx)
                 idxs_default[-1].append(default[0])
-        tsr_weights = torch.FloatTensor(list_weights)
-        emb_primary = self.embedding(torch.LongTensor(idxs_primary, device=self._device))
-        emb_default = self.embedding(torch.LongTensor(idxs_default, device=self._device))
+        tsr_weights = torch.tensor(list_weights, dtype=torch.float32, device=self._device)
+        emb_primary = self.embedding(torch.tensor(idxs_primary, dtype=torch.int64, device=self._device))
+        emb_default = self.embedding(torch.tensor(idxs_default, dtype=torch.int64, device=self._device))
         return tsr_weights * emb_primary + (1 - tsr_weights) * emb_default

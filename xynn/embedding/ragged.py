@@ -220,7 +220,7 @@ class RaggedEmbedding(RaggedBase, BasicBase):
                 idxs[col].append(idx)
 
         embedded = [
-            embedding(torch.LongTensor(col_idxs, device=self._device))
+            embedding(torch.tensor(col_idxs, dtype=torch.int64, device=self._device))
             for embedding, col_idxs in zip(self.embedding, idxs)
         ]
 
@@ -377,11 +377,11 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
                 list_weights[col].append([count / (count + self.alpha)])
                 idxs_primary[col].append(idx)
 
-        tsr_weights = torch.FloatTensor(list_weights)
+        tsr_weights = torch.tensor(list_weights, dtype=torch.float32, device=self._device)
         embedded = []
         for embedding, col_w, idxs in zip(self.embedding, tsr_weights, idxs_primary):
-            emb_primary = embedding(torch.LongTensor(idxs, device=self._device))
-            emb_default = embedding(torch.tensor([0])).reshape((1, -1))
+            emb_primary = embedding(torch.tensor(idxs, dtype=torch.int64, device=self._device))
+            emb_default = embedding(torch.tensor([0], device=self._device)).reshape((1, -1))
             embedded.append(col_w * emb_primary + (1 - col_w) * emb_default)
 
         return torch.cat(embedded, dim=1)
