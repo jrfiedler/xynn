@@ -24,13 +24,14 @@ INIT_DOC = ESTIMATOR_INIT_DOC.format(
         attn_num_head : int, optional
             default is 2
         attn_activation : subclass of torch.nn.Module or None, optional
-            default is None
+            applied to the transformation tensors; default is None
         attn_use_residual : bool, optional
             default is True
         attn_dropout : float, optional
+            amount of dropout to use on the product of queries and keys;
             default is 0.1
         attn_normalize : bool, optional
-            default is True"""
+            whether to normalize each attn layer output; default is True"""
     )
 )
 
@@ -56,6 +57,7 @@ class AutoIntClassifier(BaseClassifier):
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
         attn_normalize: bool = True,
+        attn_use_mlp: bool = True,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -82,6 +84,7 @@ class AutoIntClassifier(BaseClassifier):
             attn_use_residual=attn_use_residual,
             attn_dropout=attn_dropout,
             attn_normalize=attn_normalize,
+            attn_use_mlp=attn_use_mlp,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -123,6 +126,7 @@ class AutoIntRegressor(BaseRegressor):
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
         attn_normalize: bool = True,
+        attn_use_mlp: bool = True,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -149,6 +153,7 @@ class AutoIntRegressor(BaseRegressor):
             attn_use_residual=attn_use_residual,
             attn_dropout=attn_dropout,
             attn_normalize=attn_normalize,
+            attn_use_mlp=attn_use_mlp,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
