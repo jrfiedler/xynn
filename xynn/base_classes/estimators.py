@@ -215,7 +215,8 @@ class BaseEstimator(metaclass=ABCMeta):
                         f"expected zero numeric columns, got {X_num.shape[1]}"
                     )
             elif isinstance(self.embedding_num, EmbeddingBase):
-                self.embedding_num.fit(X_num)
+                if not self.embedding_num._isfit:
+                    self.embedding_num.fit(X_num)
             else: # initialized with embedding_num = "auto"
                 self.embedding_num = LinearEmbedding(device=self._device)
                 self.embedding_num.fit(X_num)
@@ -230,10 +231,11 @@ class BaseEstimator(metaclass=ABCMeta):
                     f"expected zero categorical columns, got {X_cat.shape[1]}"
                 )
             elif isinstance(self.embedding_cat, EmbeddingBase):
-                pass
+                if not self.embedding_cat._isfit:
+                    self.embedding_cat.fit(X_cat)
             else:  # initialized with embedding_cat = "auto"
                 self.embedding_cat = DefaultEmbedding(device=self._device)
-            self.embedding_cat.fit(X_cat)
+                self.embedding_cat.fit(X_cat)
         else:
             self.embedding_cat = None
 
@@ -250,15 +252,15 @@ class BaseEstimator(metaclass=ABCMeta):
             raise TypeError("X_num and X_cat cannot both be None")
 
         if X_num is None:
-            X_num = torch.empty((X_cat.shape[0], 0), device=self._device)
+            X_num = torch.empty((X_cat.shape[0], 0))
             self._num_numeric_fields = 0
         else:
             self._num_numeric_fields = X_num.shape[1]
             if isinstance(X_num, np.ndarray):
-                X_num = torch.from_numpy(X_num).to(self._device, dtype=torch.float32)
+                X_num = torch.from_numpy(X_num).to(dtype=torch.float32)
 
         if X_cat is None:
-            X_cat = torch.empty((X_num.shape[0], 0), device=self._device)
+            X_cat = torch.empty((X_num.shape[0], 0))
             self._num_categorical_fields = 0
         else:
             self._num_categorical_fields = X_cat.shape[1]
@@ -472,12 +474,7 @@ class BaseClassifier(BaseEstimator):
     def _convert_y(self, y) -> Tensor:
         if len(y.shape) == 1:
             y = y.reshape((-1, 1))
-
-        y = torch.tensor([self.classes[yval[0].item()] for yval in y]).to(self._device)
-        #y = torch.tensor(
-        #    [[self.classes[item.item()] for item in row] for row in y]
-        #).to(self._device)
-
+        y = torch.tensor([self.classes[yval[0].item()] for yval in y])
         return y
 
     def _fit_init(self, X_num, X_cat, y, warm_start=False):
@@ -583,7 +580,7 @@ class BaseRegressor(BaseEstimator):
 
     def _convert_y(self, y) -> Tensor:
         if isinstance(y, np.ndarray):
-            y = torch.tensor(y.astype("float32")).to(self._device)
+            y = torch.tensor(y.astype("float32"))
 
         if len(y.shape) == 1:
             y = y.reshape((-1, 1))

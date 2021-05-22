@@ -23,9 +23,9 @@ def _validate_x(X, y, X_name, device):
                 f"{X_name} should be 2-d; got shape {X.shape}"
             )
         if isinstance(X, np.ndarray):
-            X = torch.from_numpy(X).to(device=device, dtype=torch.float32)
+            X = torch.from_numpy(X).to(dtype=torch.float32)
     elif X is None:
-        X = torch.empty((y.shape[0], 0), device=device)
+        X = torch.empty((y.shape[0], 0))
     else:
         raise TypeError(f"input {X_name} should be Tensor, NumPy array, or None")
     return X
@@ -46,7 +46,7 @@ def _validate_y(y, task, device):
             raise ValueError(f"y has too many dimensions; got shape {y.shape}")
 
         if isinstance(y, np.ndarray):
-            y = torch.from_numpy(y).to(device=device, dtype=torch.float32)
+            y = torch.from_numpy(y).to(dtype=torch.float32)
     else:
         raise TypeError("y should be Tensor or NumPy array")
     return y
