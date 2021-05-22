@@ -43,7 +43,7 @@ def test_that_pnn_modules_raise_error_for_bad_product_name():
             output_size=3,
             embedding_num=embedding_num,
             embedding_cat=None,
-            product_type="either",
+            pnn_product_type="either",
         )
 
     with pytest.raises(
@@ -54,7 +54,7 @@ def test_that_pnn_modules_raise_error_for_bad_product_name():
             output_size=3,
             embedding_num=embedding_num,
             embedding_cat=None,
-            product_type="far_outer",
+            pnn_product_type="far_outer",
         )
 
 
@@ -145,7 +145,7 @@ def test_that_pnnplus_parameters_are_passed_to_submodules():
         output_size=3,
         embedding_num=embedding_num,
         embedding_cat=embedding_cat,
-        product_type="both",
+        pnn_product_type="both",
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_dropout=0.1,

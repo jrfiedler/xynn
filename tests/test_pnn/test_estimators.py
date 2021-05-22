@@ -18,8 +18,8 @@ def test_that_pnnregressor_learns():
         "embedding_cat": "auto",
         "embedding_l1_reg": 0.0,
         "embedding_l2_reg": 0.0,
-        "product_type": "outer",
-        "product_output_size": 10,
+        "pnn_product_type": "outer",
+        "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
         "mlp_activation": "LeakyReLU",
         "mlp_use_bn": False,
@@ -37,7 +37,7 @@ def test_that_pnnregressor_learns():
 
 def test_that_pnnclassifier_learns():
     estimator = PNNClassifier(
-        product_type="inner",
+        pnn_product_type="inner",
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_leaky_gate=False,
@@ -49,8 +49,8 @@ def test_that_pnnclassifier_learns():
         "embedding_cat": "auto",
         "embedding_l1_reg": 0.0,
         "embedding_l2_reg": 0.0,
-        "product_type": "inner",
-        "product_output_size": 10,
+        "pnn_product_type": "inner",
+        "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
         "mlp_activation": "LeakyReLU",
         "mlp_use_bn": False,
@@ -69,8 +69,8 @@ def test_that_pnnclassifier_learns():
 
 def test_that_pnnplusregressor_learns():
     estimator = PNNPlusRegressor(
-        product_type="both",
-        product_output_size=8,
+        pnn_product_type="both",
+        pnn_product_size=8,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_leaky_gate=False,
@@ -82,8 +82,8 @@ def test_that_pnnplusregressor_learns():
         "embedding_cat": "auto",
         "embedding_l1_reg": 0.0,
         "embedding_l2_reg": 0.0,
-        "product_type": "both",
-        "product_output_size": 8,
+        "pnn_product_type": "both",
+        "pnn_product_size": 8,
         "mlp_hidden_sizes": [10, 8, 8, 6],
         "mlp_activation": "LeakyReLU",
         "mlp_use_bn": False,
@@ -115,8 +115,8 @@ def test_that_pnnplusclassifier_learns():
         "embedding_cat": "DefaultEmbedding(10, 20, 'cpu')",
         "embedding_l1_reg": 0.0,
         "embedding_l2_reg": 0.0,
-        "product_type": "outer",
-        "product_output_size": 10,
+        "pnn_product_type": "outer",
+        "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
         "mlp_activation": "LeakyReLU",
         "mlp_use_bn": False,

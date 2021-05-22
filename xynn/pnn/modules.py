@@ -7,7 +7,7 @@ PyTorch modules for the PNN and PNNPlus models
 # Paper: https://arxiv.org/pdf/1611.00144.pdf
 
 import textwrap
-from typing import Union, Tuple, Iterable, Callable, Optional, Type, List
+from typing import Union, Tuple, Callable, Optional, Type, List
 
 import torch
 from torch import Tensor
@@ -22,11 +22,11 @@ from ..embedding.common import EmbeddingBase
 INIT_DOC = MODULE_INIT_DOC.format(
     textwrap.dedent(
         """\
-        product_type : {"inner", "outer", "both"}, optional
+        pnn_product_type : {"inner", "outer", "both"}, optional
             default is "outer"
-        product_output_size : int, optional
+        pnn_product_size : int, optional
             size of overall product output after transformation; after
-            transformation, the batch size is num_rows x product_output_size;
+            transformation, the batch size is num_rows x pnn_product_size;
             default is 10"""
     )
 )
@@ -59,7 +59,12 @@ class InnerProduct(nn.Module):
 
     """
 
-    def __init__(self, num_fields: int, output_size: int=10):
+    def __init__(
+        self,
+        num_fields: int,
+        output_size: int = 10,
+        device: Union[str, torch.device] = "cpu",
+    ):
         """
         Parameters
         ----------
@@ -70,10 +75,13 @@ class InnerProduct(nn.Module):
             size of output after product and transformation; after
             transformation, the batch size is num_rows x output_size;
             default is 10
+        device : string or torch.device, optional
+            default is "cpu"
 
         """
         super().__init__()
         self.weights = xavier_linear((output_size, num_fields))
+        self.to(device=device)
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -106,7 +114,12 @@ class OuterProduct(nn.Module):
 
     """
 
-    def __init__(self, embedding_size: int, output_size: int=10):
+    def __init__(
+        self,
+        embedding_size: int,
+        output_size: int = 10,
+        device: Union[str, torch.device] = "cpu"
+    ):
         """
         Parameters
         ----------
@@ -118,10 +131,13 @@ class OuterProduct(nn.Module):
             size of output after product and transformation; after
             transformation, the batch size is num_rows x output_size;
             default is 10
+        device : string or torch.device, optional
+            default is "cpu"
 
         """
         super().__init__()
         self.weights = xavier_linear((output_size, embedding_size, embedding_size))
+        self.to(device=device)
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -160,8 +176,8 @@ class PNNCore(nn.Module):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
-        product_type: str = "outer",
-        product_output_size: int = 10,
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -173,32 +189,36 @@ class PNNCore(nn.Module):
     ):
         super().__init__()
 
-        if product_type not in {"inner", "outer", "both"}:
+        if pnn_product_type not in {"inner", "outer", "both"}:
             raise ValueError("pnn_product_type should be 'inner', 'outer', or 'both'")
 
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
 
-        self.product_type = product_type
+        self.product_type = pnn_product_type
 
         # linear
         self.weights_linear = xavier_linear(
-            (product_output_size, embed_info.num_fields, embed_info.embedding_size)
+            (pnn_product_size, embed_info.num_fields, embed_info.embedding_size)
         )
 
         # inner product
         if self.product_type in ('inner', 'both'):
-            self.inner = InnerProduct(embed_info.num_fields, product_output_size)
+            self.inner = InnerProduct(
+                embed_info.num_fields, pnn_product_size, device
+            )
         else:
             self.inner = None
 
         # outer product
         if self.product_type in ('outer', 'both'):
-            self.outer = OuterProduct(embed_info.embedding_size, product_output_size)
+            self.outer = OuterProduct(
+                embed_info.embedding_size, pnn_product_size, device
+            )
         else:
             self.outer = None
 
         # MLP
-        mlp_input_size = product_output_size * (2 if product_type != "both" else 3)
+        mlp_input_size = pnn_product_size * (2 if pnn_product_type != "both" else 3)
 
         self.mlp = MLP(
             task,
@@ -214,6 +234,8 @@ class PNNCore(nn.Module):
             use_skip=mlp_use_skip,
             device=device,
         )
+
+        self.to(device=device)
 
     __init__.__doc__ = INIT_DOC
 
@@ -255,7 +277,12 @@ class PNNCore(nn.Module):
 
 
 class PNN(BaseNN):
-    """ The PNN model. Paper: https://arxiv.org/pdf/1611.00144.pdf """
+    """
+    The PNN model. See PNN.diagram() for the general structure of the model.
+
+    Paper for the original PNN model: https://arxiv.org/pdf/1611.00144.pdf
+
+    """
 
     def __init__(
         self,
@@ -263,9 +290,9 @@ class PNN(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
-        product_type: str = "outer",
-        product_output_size: int = 10,
-        mlp_hidden_sizes: Union[int, Tuple[int], List[int]] = (512, 256, 128, 64),
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
+        mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
         mlp_bn_momentum: float = 0.1,
@@ -281,8 +308,8 @@ class PNN(BaseNN):
             output_size=output_size,
             embedding_num=embedding_num,
             embedding_cat=embedding_cat,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -300,14 +327,14 @@ class PNN(BaseNN):
     def diagram():
         """ Print a text diagram of this model """
         gram = """\
-        if product_type="inner" or product_type="outer"
-        -----------------------------------------------
-        X_num ─ Lin. embedding ┬─┬─ Linear ──────────────┬─ MLP
+        if pnn_product_type="inner" or pnn_product_type="outer"
+        -------------------------------------------------------
+        X_num ─ Num. embedding ┬─┬─ Linear ──────────────┬─ MLP
         X_cat ─ Cat. embedding ┘ └─ inner/outer product ─┘
 
-        if product_type="both"
-        ----------------------
-        X_num ─ Lin. embedding ┬─┬─ Linear ────────┬─ MLP
+        if pnn_product_type="both"
+        --------------------------
+        X_num ─ Num. embedding ┬─┬─ Linear ────────┬─ MLP
         X_cat ─ Cat. embedding ┘ ├─ inner product ─┤
                                  └─ outer product ─┘
 
@@ -349,7 +376,8 @@ class PNN(BaseNN):
 
 class PNNPlus(BaseNN):
     """
-    The PNN model, with a side MLP component. See PNNPlus.diagram().
+    The PNN model, with a side MLP component. See PNNPlus.diagram()
+    for the general structure of the model.
 
     Paper for the original PNN model: https://arxiv.org/pdf/1611.00144.pdf
 
@@ -361,9 +389,9 @@ class PNNPlus(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
-        product_type: str = "outer",
-        product_output_size: int = 10,
-        mlp_hidden_sizes: Union[int, Iterable[int]] = (512, 256, 128, 64),
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
+        mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
         mlp_bn_momentum: float = 0.1,
@@ -376,7 +404,7 @@ class PNNPlus(BaseNN):
     ):
         super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
 
-        if product_type not in {"inner", "outer", "both"}:
+        if pnn_product_type not in {"inner", "outer", "both"}:
             raise ValueError("pnn_product_type should be 'inner', 'outer', or 'both'")
 
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
@@ -386,8 +414,8 @@ class PNNPlus(BaseNN):
             output_size=output_size,
             embedding_num=embedding_num,
             embedding_cat=embedding_cat,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -415,7 +443,7 @@ class PNNPlus(BaseNN):
 
         self.embedding_size = embed_info.embedding_size
         if weighted_sum:
-            self.mix = nn.Parameter(torch.tensor([0.0]))
+            self.mix = nn.Parameter(torch.tensor([0.0], device=device))
         else:
             self.mix = torch.tensor([0.0], device=device)
         #self.to(device)
@@ -426,13 +454,13 @@ class PNNPlus(BaseNN):
     def diagram():
         """ Print a text diagram of this model """
         gram = """\
-        if product_type="outer" (default) or product_type="inner"
+        if pnn_product_type="outer" (default) or pnn_product_type="inner"
         ---------------------------------------------------------
         X_num ─ Num. embedding ┐ ┌─────── Linear ────────┬─ MLP ─┐
                                ├─┼─ inner/outer product ─┘       w+ ── output
         X_cat ─ Cat. embedding ┘ └───────────────────────── MLP ─┘
 
-        if product_type="both"
+        if pnn_product_type="both"
         ----------------------   ┌──── Linear ─────┐
         X_num ─ Num. embedding ┐ ├─ inner product ─┼─ MLP ─┐
                                ├─┼─ outer product ─┘       w+ ── output

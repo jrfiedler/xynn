@@ -17,9 +17,9 @@ from .modules import PNN, PNNPlus
 INIT_DOC = ESTIMATOR_INIT_DOC.format(
     textwrap.dedent(
         """\
-        product_type : {"inner", "outer", "both"}, optional
+        pnn_product_type : {"inner", "outer", "both"}, optional
             default is "outer"
-        product_output_size : int, optional
+        pnn_product_size : int, optional
             size of overall product output after transformation; i.e., after
             transformation, the batch size is num_rows x product_output_size;
             default is 10"""
@@ -41,8 +41,8 @@ class PNNClassifier(BaseClassifier):
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
-        product_type: str = "outer",
-        product_output_size: int = 10,
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -61,8 +61,8 @@ class PNNClassifier(BaseClassifier):
             embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -96,8 +96,8 @@ class PNNRegressor(BaseRegressor):
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
-        product_type: str = "outer",
-        product_output_size: int = 10,
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -116,8 +116,8 @@ class PNNRegressor(BaseRegressor):
             embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -151,8 +151,8 @@ class PNNPlusClassifier(BaseClassifier):
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
-        product_type: str = "outer",
-        product_output_size: int = 10,
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -172,8 +172,8 @@ class PNNPlusClassifier(BaseClassifier):
             embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
@@ -208,8 +208,8 @@ class PNNPlusRegressor(BaseRegressor):
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
-        product_type: str = "outer",
-        product_output_size: int = 10,
+        pnn_product_type: str = "outer",
+        pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
@@ -229,8 +229,8 @@ class PNNPlusRegressor(BaseRegressor):
             embedding_cat=embedding_cat,
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
-            product_type=product_type,
-            product_output_size=product_output_size,
+            pnn_product_type=pnn_product_type,
+            pnn_product_size=pnn_product_size,
             mlp_hidden_sizes=mlp_hidden_sizes,
             mlp_activation=mlp_activation,
             mlp_use_bn=mlp_use_bn,
