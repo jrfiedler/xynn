@@ -8,7 +8,7 @@ from xynn.embedding.utils import _init_embed_info, _check_is_uniform
 from xynn.embedding import fit_embeddings, check_uniform_embeddings, check_embeddings
 from xynn.embedding import LinearEmbedding, BasicEmbedding, DefaultEmbedding
 from xynn.embedding import RaggedEmbedding, RaggedDefaultEmbedding
-from xynn.dataset import TabularDataset
+from xynn.dataset import TabularDataLoader
 from .utils import example_data
 
 
@@ -17,8 +17,7 @@ def simple_dataloader():
     X_num = data[["num_a", "num_b"]].values
     X_cat = data[["cat_a", "cat_b", "cat_c"]].values
     y = np.array([0, 1, 1, 0, 1, 1, 0, 0, 1, 0])
-    dataset = TabularDataset(X_num, X_cat, y, task="classification")
-    dataloader = DataLoader(dataset, batch_size=2)
+    dataloader = TabularDataLoader("classification", X_num, X_cat, y, batch_size=2)
     return dataloader
 
 

@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torch.nn.functional import softmax
 
 from ..embedding import EmbeddingBase, BasicEmbedding, LinearEmbedding, DefaultEmbedding
-from ..dataset import TabularDataset
+from ..dataset import TabularDataLoader
 from ..train import train, now
 from .modules import BaseNN
 
@@ -356,16 +356,28 @@ class BaseEstimator(metaclass=ABCMeta):
         X_num, X_cat, y = self._fit_init(X_num, X_cat, y, warm_start)
         self._optimizer_init(optimizer, opt_kwargs, scheduler, sch_kwargs)
 
-        train_ds = TabularDataset(X_num, X_cat, y, task=self.task, device=self._device)
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+        train_dl = TabularDataLoader(
+            task=self.task,
+            X_num=X_num,
+            X_cat=X_cat,
+            y=y,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            device=self._device,
+        )
 
         if val_sets is not None:
-            val_sets = [
-                (*self._convert_x(*val_set), self._convert_y(val_set[-1]))
+            valid_dl = [
+                TabularDataLoader(
+                    self.task,
+                    *self._convert_x(*val_set),
+                    y=self._convert_y(val_set[-1]),
+                    batch_size=batch_size,
+                    shuffle=False,
+                    device=self._device,
+                )
                 for val_set in val_sets
             ]
-            valid_ds = [TabularDataset(*val_set, task=self.task) for val_set in val_sets]
-            valid_dl = [DataLoader(ds, batch_size=batch_size) for ds in valid_ds]
         else:
             valid_dl = None
 

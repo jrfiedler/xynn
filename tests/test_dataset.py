@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import pytest
 
-from xynn.dataset import _validate_x, _validate_y, TabularDataset
+from xynn.dataset import _validate_x, _validate_y, TabularDataLoader
 
 
 def test_that__validate_x_raises_error_with_wrong_type():
@@ -107,43 +107,83 @@ def test__validate_y_with_tensor_input():
     assert y_out is y
 
 
-def test_that_TabularDataset_raises_error_when_both_Xs_are_None():
+def test_that_TabularDataLoader_raises_error_when_both_Xs_are_None():
     y = np.array([0, 1] * 10)
     with pytest.raises(TypeError, match="X_num and X_cat cannot both be None"):
-        TabularDataset(None, None, y, task="regression")
+        TabularDataLoader(task="regression", X_num=None, X_cat=None, y=y)
 
 
-def test_TabularDataset_with_numpy_input():
+def test_TabularDataLoader_with_numpy_input():
     X_num = np.array([[i - 1, i, i + 1] for i in range(20, 0, -1)])
     X_cat = np.array([[i + j for j in range(5)] for i in range(20)])
     y = np.array([0, 1] * 10)
 
-    dataset = TabularDataset(X_num, X_cat, y, task="regression")
-    assert len(dataset) == 20
+    loader = TabularDataLoader(task="regression", X_num=X_num, X_cat=X_cat, y=y)
+    assert len(loader) == 1
 
-    data_pt = dataset[16]
-    assert isinstance(data_pt, tuple)
-    assert len(data_pt) == 3
-    assert data_pt[0].shape == (3,)
-    assert data_pt[1].shape == (5,)
-    assert data_pt[2].shape == (1,)
-    assert all(x1 == x2 for x1, x2 in zip(data_pt[0], X_num[16]))
-    assert all(x1 == x2 for x1, x2 in zip(data_pt[1], X_cat[16]))
-    assert data_pt[2][0].item() == y[16].item()
+    batch = next(iter(loader))
+    assert isinstance(batch, tuple)
+    assert len(batch) == 3
+    # batch size is greater than 20
+    assert torch.all(batch[0] == torch.from_numpy(X_num)).item()
+    assert torch.all(batch[1] == torch.from_numpy(X_cat)).item()
+    assert torch.all(batch[2] == torch.from_numpy(y).reshape((20, 1))).item()
 
 
-def test_TabularDataset_with_tensor_input():
+def test_TabularDataLoader_with_shuffled_numpy_input():
+    X_num = np.array([[i - 1, i, i + 1] for i in range(20, 0, -1)])
+    X_cat = np.array([[i + j for j in range(5)] for i in range(20)])
+    y = np.arange(20)
+
+    loader = TabularDataLoader(
+        task="regression", X_num=X_num, X_cat=X_cat, y=y, shuffle=True
+    )
+    assert len(loader) == 1
+
+    batch = next(iter(loader))
+    assert isinstance(batch, tuple)
+    assert len(batch) == 3
+    # batch size is greater than 20
+    order = [int(x.item()) for x in batch[2].reshape((20,))]
+    assert set(order) == set(y)
+    assert order != list(y)
+    assert torch.all(batch[0] == torch.from_numpy(X_num[order])).item()
+    assert torch.all(batch[1] == torch.from_numpy(X_cat[order])).item()
+    assert torch.all(batch[2] == torch.from_numpy(y[order]).reshape((20, 1))).item()
+
+
+def test_TabularDataLoader_with_numpy_input_and_smaller_batches():
+    X_num = np.array([[i - 1, i, i + 1] for i in range(20, 0, -1)])
+    X_cat = np.array([[i + j for j in range(5)] for i in range(20)])
+    y = np.arange(20)
+
+    loader = TabularDataLoader(
+        task="regression", X_num=X_num, X_cat=X_cat, y=y, shuffle=True, batch_size=10
+    )
+    assert len(loader) == 2
+
+    batch_0, batch_1 = list(loader)
+    assert all(len(t) == 10 for batch in (batch_0, batch_1) for t in batch)
+    batch_cat = tuple(torch.cat([t_0, t_1], dim=0) for t_0, t_1 in zip(batch_0, batch_1))
+    order = [int(x.item()) for x in batch_cat[2].reshape((20,))]
+    assert set(order) == set(y)
+    assert order != list(y)
+    assert torch.all(batch_cat[0] == torch.from_numpy(X_num[order])).item()
+    assert torch.all(batch_cat[1] == torch.from_numpy(X_cat[order])).item()
+    assert torch.all(batch_cat[2] == torch.from_numpy(y[order]).reshape((20, 1))).item()
+
+
+def test_TabularDataLoader_with_tensor_input():
     X_num = torch.tensor([[i - 1, i, i + 1] for i in range(20, 0, -1)])
     y = torch.tensor([0, 1] * 10)
 
-    dataset = TabularDataset(X_num, None, y, task="classification")
-    assert len(dataset) == 20
+    loader = TabularDataLoader(task="classification", X_num=X_num, X_cat=None, y=y)
+    assert len(loader) == 1
 
-    data_pt = dataset[16]
-    assert isinstance(data_pt, tuple)
-    assert len(data_pt) == 3
-    assert data_pt[0].shape == (3,)
-    assert data_pt[1].shape == (0,)
-    assert data_pt[2].shape == ()
-    assert all(x1 == x2 for x1, x2 in zip(data_pt[0], X_num[16]))
-    assert data_pt[2].item() == y[16].item()
+    batch = next(iter(loader))
+    assert isinstance(batch, tuple)
+    assert len(batch) == 3
+    # batch size is greater than 20
+    assert torch.all(batch[0] == X_num).item()
+    assert batch[1].shape == (20, 0)
+    assert torch.all(batch[2] == y).item()
