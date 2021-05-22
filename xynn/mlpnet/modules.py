@@ -1,13 +1,10 @@
 """
-PyTorch modules for the PNN and PNNPlus models
+PyTorch module for the MLP model
 
 """
-# product implementations adapted from
-# https://github.com/JianzhouZhan/Awesome-RecSystem-Models/blob/master/Model/PNN_PyTorch.py
-# Paper: https://arxiv.org/pdf/1611.00144.pdf
 
 import textwrap
-from typing import Union, Tuple, Iterable, Callable, Optional, Type, List
+from typing import Union, Tuple, Callable, Optional, Type, List
 
 import torch
 from torch import Tensor
@@ -39,7 +36,7 @@ class MLPNet(BaseNN):
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
         num_numeric_fields: Union[int, str] = "auto",
-        mlp_hidden_sizes: Union[int, Iterable[int]] = (512, 256, 128, 64),
+        mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
         mlp_bn_momentum: float = 0.1,
@@ -86,20 +83,22 @@ class MLPNet(BaseNN):
     def diagram():
         """ Print a text diagram of this model """
         gram = """\
-        if use_skip=False (default)
-        ---------------------------
-        X_num ─ Num. embedding ┐
-                               ├─── MLP ── output
-        X_cat ─ Cat. embedding ┘
 
-        if use_skip=True
-        ----------------------
-        X_num ─ Num. embedding ┐ ┌─── MLP ──┐
-                               ├─┤          w+ ── output
-        X_cat ─ Cat. embedding ┘ └─ Linear ─┘
+        if mlp_use_skip=True (default)
+        ------------------------------
+        X_num ─ Num. embedding? ┐ ┌─── MLP ──┐
+                                ├─┤          w+ ── output
+        X_cat ─ Cat. embedding ─┘ └─ Linear ─┘
+
+        if mlp_use_skip=False
+        ---------------------
+        X_num ─ Num. embedding? ┐
+                                ├─── MLP ── output
+        X_cat ─ Cat. embedding ─┘
 
         splits are copies and joins are concatenations;
-        'w+' is weighted element-wise addition
+        'w+' is weighted element-wise addition;
+        the numeric embedding is optional
         """
         print("\n" + textwrap.dedent(gram))
 
