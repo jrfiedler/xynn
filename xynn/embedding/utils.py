@@ -75,12 +75,12 @@ def fit_embeddings(
     if embedding_num is None:
         pass
     elif isinstance(embedding_num, LinearEmbedding):
-        embedding_num.from_values(num_info_1)
+        embedding_num.from_summary(num_info_1)
     else:
-        embedding_num.from_values(num_info_1, num_info_2)
+        embedding_num.from_summary(num_info_1, num_info_2)
 
     if embedding_cat is not None:
-        embedding_cat.from_values(cat_info_1, cat_info_2)
+        embedding_cat.from_summary(cat_info_1, cat_info_2)
 
     return embedding_num, embedding_cat
 

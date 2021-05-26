@@ -7,6 +7,9 @@ RaggedEmbedding
 RaggedDefaultEmbedding
   - like uniform.DefaultEmbedding, but allows a different vector size for each field
 
+FastAI embedding size: arXiv preprint arXiv:2002.04688
+AutoGluon embedding size: https://arxiv.org/pdf/2003.06505v1.pdf
+
 """
 
 from math import ceil, sqrt, log
@@ -25,9 +28,10 @@ from .common import EmbeddingBase, BasicBase, DefaultBase
 def _check_embedding_size(embedding_size, num_categories=None):
     """Check that given `embedding_size` makes sense for ragged embeddings"""
     if isinstance(embedding_size, str):
-        if embedding_size not in ("sqrt", "log"):
+        embedding_size = embedding_size.lower()
+        if embedding_size not in ("sqrt", "log", "fastai"):
             raise ValueError(
-                "str embedding_size value must be one of {'sqrt', 'log'}; "
+                "str embedding_size value must be one of {'sqrt', 'log', 'fastai'}; "
                 f"got '{embedding_size}'"
             )
     elif not isinstance(embedding_size, IterableClass) or not all(
@@ -39,21 +43,28 @@ def _check_embedding_size(embedding_size, num_categories=None):
             "number of embeddings must match number of fields, got "
             f"{len(embedding_size)} sizes and {len(num_categories)} fields"
         )
+    return embedding_size
 
 
-def _parse_embedding_size(embedding_size, num_categories) -> List[int]:
+def _parse_embedding_size(embedding_size, max_size, num_categories) -> List[int]:
     """
-    Parse given `embedding_size into` a list of individual sizes,
+    Parse given `embedding_size` into a list of individual sizes,
     for ragged embeddings
     """
     _check_embedding_size(embedding_size, num_categories)
     # calculate the individual values if "sqrt" or "log"
-    if embedding_size == "sqrt":
-        embedding_size = [int(ceil(sqrt(num_cat))) for num_cat in num_categories]
-    elif embedding_size == "log":
-        embedding_size = [
-            int(ceil(log(num_cat))) if num_cat > 1 else 1 for num_cat in num_categories
-        ]
+    if isinstance(embedding_size, str):
+        num_categories = np.array(num_categories)
+        if embedding_size == "sqrt":
+            base_size = np.ceil(np.sqrt(num_categories))
+        elif embedding_size == "log":
+            base_size = np.ceil(np.log(num_categories))
+        else:  # embedding_size == "fastai":
+            base_size = (1.6 * num_categories ** 0.56).round()
+        clipped_size = np.clip(1, max_size, base_size).astype("int")
+        embedding_size = list(clipped_size)
+    else:  # iterable of int
+        pass
     return embedding_size
 
 
@@ -93,43 +104,51 @@ class RaggedEmbedding(RaggedBase, BasicBase):
     def __init__(
         self,
         embedding_size: Union[str, Iterable[int]] = "sqrt",
+        max_size: int = 100,
         device: Union[str, torch.device] = "cpu",
     ):
         """
         Parameters
         ----------
-        embedding_size : {"sqrt", "log"} or iterable of int; optional
-            if "sqrt" each size will be the square root of the number of
-            categories in each field, rounded up; "log" is likewise, except
-            the log of number of categories; if iterable of int, the number
-            of values must match the number of fields when calling size of
-            each field's embedding vector; the embedding size can also be
-            passed in later with `fit` or `from_values`; default is "sqrt"
+        embedding_size : {"sqrt", "log", "fastai"} or iterable of int; optional
+            - "sqrt": square root of number of classes in each field, rounded up
+            - "log": log of number of classes in each field, rounded up
+            - "fastai": `round(1.6 * num_classes**0.56))`
+            if iterable of int, the number of values must match the number of
+            fields when calling `fit`; the embedding size can also be
+            passed in later with `fit` or `from_summary`; default is "sqrt"
+        max_size : int, optional
+            maximum embedding size if using "sqrt", "log", or "fastai";
+            default is 100
         device : string or torch.device, optional
 
         """
         super().__init__()
-        _check_embedding_size(embedding_size)
+        embedding_size = _check_embedding_size(embedding_size)
         self.num_fields = 0
         self.output_size = 0
         self.lookup: Dict[Tuple[int, Any], int] = {}
         self.lookup_nan: Dict[int, int] = {}
         self.num_values: List[int] = []
         self.embedding: Optional[nn.ModuleList] = None
+        self.embedding_size_orig = embedding_size
         self.embedding_size = embedding_size
+        self.max_size = max_size
         self._device = device
         self.to(device)
         self._isfit = False
 
     def __repr__(self):
-        return f"RaggedEmbedding({repr(self.embedding_size)}, {repr(self._device)})"
+        embed_size = repr(self.embedding_size_orig)
+        max_size = self.max_size
+        device = repr(self._device)
+        return f"RaggedEmbedding({embed_size}, {max_size}, {device})"
 
-    def from_values(
+    def from_summary(
         self,
         uniques: List[Union[List, np.ndarray]],
         has_nan: List[bool],
-        embedding_size: Optional[Union[str, Iterable[int]]] = None,
-    ):
+    ) -> EmbeddingBase:
         """
         Create the embedding from category values for each field
 
@@ -139,13 +158,6 @@ class RaggedEmbedding(RaggedBase, BasicBase):
             all possible category values for each field
         has_nan : list of boolean
             whether each field can have NaN
-        embedding_size : {"sqrt", "log"}, iterable of int, or None; optional
-            if None, the value from initialization will be used; if "sqrt"
-            each size will be the square root of the number of categories in
-            each field, rounded up; "log" is likewise, except the log of
-            number of categories; if iterable of int, the number of values
-            must match the number of fields when calling size of each field's
-            embedding vector; default is None
 
         Return
         ------
@@ -157,8 +169,6 @@ class RaggedEmbedding(RaggedBase, BasicBase):
                 "length of uniques and has_nan should be equal, "
                 f"got {len(uniques)}, {len(has_nan)}"
             )
-        if embedding_size is None:
-            embedding_size = self.embedding_size
 
         lookup = {}
         lookup_nan = {}
@@ -174,7 +184,9 @@ class RaggedEmbedding(RaggedBase, BasicBase):
                 lookup_nan[fieldnum] = num_values[fieldnum]
                 num_values[fieldnum] += 1
 
-        embedding_size = _parse_embedding_size(embedding_size, num_values)
+        embedding_size = _parse_embedding_size(
+            self.embedding_size, self.max_size, num_values
+        )
 
         self.embedding = nn.ModuleList([])
         for num_cats, size in zip(num_values, embedding_size):
@@ -207,7 +219,7 @@ class RaggedEmbedding(RaggedBase, BasicBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
 
         idxs: List[List[int]] = [[] for _ in range(self.num_fields)]
         for row in X:
@@ -231,7 +243,7 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
     """
     An embedding with a default value for each field and which allows a different
     embedding size for each field. The default is returned for any field value
-    not seen when the embedding was initialized (using `fit` or `from_values`).
+    not seen when the embedding was initialized (using `fit` or `from_summary`).
     For any value seen at initialization, a weighted average of that value's
     embedding and the default embedding is returned. The weights for the average
     are determined by the parameter `alpha`:
@@ -244,14 +256,23 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
     def __init__(
         self,
         embedding_size: Union[str, Iterable[int]] = "sqrt",
+        max_size: int = 100,
         alpha: int = 20,
         device: Union[str, torch.device] = "cpu",
     ):
         """
         Parameters
         ----------
-        embedding_size : int
-            size of each value's embedding vector
+        embedding_size : {"sqrt", "log", "fastai"} or iterable of int; optional
+            - "sqrt": square root of number of classes in each field, rounded up
+            - "log": log of number of classes in each field, rounded up
+            - "fastai": `round(1.6 * num_classes**0.56))`
+            if iterable of int, the number of values must match the number of
+            fields when calling `fit`; the embedding size can also be
+            passed in later with `fit` or `from_summary`; default is "sqrt"
+        max_size : int, optional
+            maximum embedding size if using "sqrt", "log", or "fastai";
+            default is 100
         alpha : int, optional
             controls the weighting of each embedding vector with the default;
             when `alpha`-many values are seen at initialization; the final
@@ -261,7 +282,7 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
 
         """
         super().__init__()
-        _check_embedding_size(embedding_size)
+        embedding_size = _check_embedding_size(embedding_size)
         self.num_fields = 0
         self.output_size = 0
         self.alpha = alpha
@@ -270,23 +291,25 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
         self.lookup_default: Dict[int, Tuple[int, int]] = {}
         self.num_values: List[int] = []
         self.embedding: Optional[nn.ModuleList] = None
+        self.embedding_size_orig = embedding_size
         self.embedding_size = embedding_size
+        self.max_size = max_size
         self._device = device
         self.to(device)
         self._isfit = False
 
     def __repr__(self):
-        embed_size = repr(self.embedding_size)
+        embed_size = repr(self.embedding_size_orig)
+        max_size = self.max_size
         alpha = self.alpha
         device = repr(self._device)
-        return f"RaggedDefaultEmbedding({embed_size}, {alpha}, {device})"
+        return f"RaggedDefaultEmbedding({embed_size}, {max_size}, {alpha}, {device})"
 
-    def from_values(
+    def from_summary(
         self,
         unique_counts: List[Dict[Any, int]],
         nan_counts: List[int],
-        embedding_size: Optional[Union[str, Iterable[int]]] = None,
-    ):
+    ) -> EmbeddingBase:
         """
         Create the embedding from known value counts for each field
 
@@ -297,13 +320,6 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
             one dict for each field
         nan_counts : list of int
             count of NaN occurrences for each field
-        embedding_size : {"sqrt", "log"}, iterable of int, or None; optional
-            if None, the value from initialization will be used; if "sqrt"
-            each size will be the square root of the number of categories in
-            each field, rounded up; "log" is likewise, except the log of
-            number of categories; if iterable of int, the number of values
-            must match the number of fields when calling size of each field's
-            embedding vector; default is None
 
         Return
         ------
@@ -315,8 +331,6 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
                 "length of unique_counts and nan_count should be equal, "
                 f"got {len(unique_counts)}, {len(nan_counts)}"
             )
-        if embedding_size is None:
-            embedding_size = self.embedding_size
 
         lookup = {}
         lookup_nan = {}
@@ -330,7 +344,9 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
                 lookup_nan[fieldnum] = (num_values[fieldnum], nan_count)
                 num_values[fieldnum] += 1
 
-        embedding_size = _parse_embedding_size(embedding_size, num_values)
+        embedding_size = _parse_embedding_size(
+            self.embedding_size, self.max_size, num_values
+        )
 
         self.embedding = nn.ModuleList([])
         for num_cats, size in zip(num_values, embedding_size):
@@ -363,7 +379,7 @@ class RaggedDefaultEmbedding(RaggedBase, DefaultBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
 
         list_weights: List[List[List[float]]] = [[] for _ in range(self.num_fields)]
         idxs_primary: List[List[int]] = [[] for _ in range(self.num_fields)]

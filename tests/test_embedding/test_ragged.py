@@ -5,8 +5,75 @@ from torch import nn
 import pytest
 
 from xynn.embedding import RaggedEmbedding, RaggedDefaultEmbedding
+from xynn.embedding.ragged import _check_embedding_size, _parse_embedding_size
 from ..common import simple_train_loop
 from .utils import example_data
+
+
+def test__check_embedding_size_raises_error_for_bad_embedding_size():
+    # bad name
+    with pytest.raises(
+        ValueError,
+        match=(
+            "str embedding_size value must be one of {'sqrt', 'log', 'fastai'}; "
+            "got 'fourth_rt'"
+        ),
+    ):
+        _check_embedding_size("fourth_rt")
+
+    # single int not allowed
+    with pytest.raises(
+        TypeError,
+        match="embedding_size 5 not understood",
+    ):
+        _check_embedding_size(5)
+
+    # float values not allowed
+    with pytest.raises(
+        TypeError,
+        match="embedding_size \[5, 10, 15.0\] not understood",
+    ):
+        _check_embedding_size([5, 10, 15.0])
+
+    # wrong number of ints
+    with pytest.raises(
+        ValueError,
+        match="number of embeddings must match number of fields, got 3 sizes and 4 fields",
+    ):
+        _check_embedding_size([5, 10, 15], [10, 20, 30, 40])
+
+
+def test__check_embedding_size_with_uppercase():
+    assert _check_embedding_size("SQRT") == "sqrt"
+    assert _check_embedding_size("Log") == "log"
+    assert _check_embedding_size("FastAI") == "fastai"
+
+
+def test__check_embedding_size_with_ints():
+    assert _check_embedding_size([5, 10, 15]) == [5, 10, 15]
+    assert _check_embedding_size((5, 10, 15)) == (5, 10, 15)
+
+
+def test__parse_embedding_size_with_sqrt():
+    output = _parse_embedding_size("sqrt", 20, [4, 25, 64, 196, 400, 625, 1600])
+    assert output == [2, 5, 8, 14, 20, 20, 20]
+
+
+def test__parse_embedding_size_with_log():
+    output = _parse_embedding_size("log", 7, [4, 25, 64, 196, 400, 625, 1600])
+    assert output == [2, 4, 5, 6, 6, 7, 7]
+
+
+def test__parse_embedding_size_with_fastai():
+    output = _parse_embedding_size("fastai", 50, [4, 25, 64, 196, 400, 625, 1600])
+    assert output == [3, 10, 16, 31, 46, 50, 50]
+
+
+def test__parse_embedding_size_with_ints():
+    output = _parse_embedding_size(
+        [5, 5, 5, 5, 5, 5, 5], 20, [4, 25, 64, 196, 400, 625, 1600]
+    )
+    assert output == [5] * 7
 
 
 def test_that_raggedembedding_must_be_fit():
@@ -18,16 +85,22 @@ def test_that_raggedembedding_must_be_fit():
             "cat_c": [0, 1, np.nan, 0],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 
 
 def test_raggedembedding_repr():
     embedding = RaggedEmbedding(embedding_size=[2, 3, 2])
-    assert repr(embedding) == "RaggedEmbedding([2, 3, 2], 'cpu')"
-    embedding = RaggedEmbedding()
-    assert repr(embedding) == "RaggedEmbedding('sqrt', 'cpu')"
+    assert repr(embedding) == "RaggedEmbedding([2, 3, 2], 100, 'cpu')"
+    embedding = RaggedEmbedding(max_size=200)
+    assert repr(embedding) == "RaggedEmbedding('sqrt', 200, 'cpu')"
+
+
+def test_raggedembedding_repr_after_fitting():
+    data_cat = example_data()[["cat_a", "cat_b", "cat_c"]]
+    embedding = RaggedEmbedding(embedding_size=[2, 3, 2]).fit(data_cat)
+    assert repr(embedding) == "RaggedEmbedding([2, 3, 2], 100, 'cpu')"
 
 
 def test_raggedembedding_with_pandas_example():
@@ -146,18 +219,18 @@ def test_raggedembedding_weight_sum():
     assert e2_sum.item() == expected_e2_sum
 
 
-def test_raggedembedding_initialization_with_from_values():
+def test_raggedembedding_initialization_with_from_summary():
     uniques = [list(range(10)), list(range(25)), list(range(5)), list(range(2))]
     has_nan = [False, False, True, False]
-    embedding = RaggedEmbedding()
-    embedding.from_values(uniques, has_nan, embedding_size="log")
+    embedding = RaggedEmbedding(embedding_size="log")
+    embedding.from_summary(uniques, has_nan)
     weight = [emb.weight for emb in embedding.embedding]
     assert [w.shape for w in weight] == [(10, 3), (25, 4), (6, 2), (2, 1)]
 
 
 def test_raggedembedding_raises_error_for_bad_embedding_size():
     msg = (
-        "str embedding_size value must be one of {'sqrt', 'log'}; "
+        "str embedding_size value must be one of {'sqrt', 'log', 'fastai'}; "
         "got 'surprise me'"
     )
     with pytest.raises(ValueError, match=msg):
@@ -172,16 +245,16 @@ def test_raggedembedding_raises_error_for_bad_embedding_size():
     has_nan = [False, True, False]
     msg = "number of embeddings must match number of fields, got 2 sizes and 3 fields"
     with pytest.raises(ValueError, match=msg):
-        embedding.from_values(uniques, has_nan)
+        embedding.from_summary(uniques, has_nan)
 
 
-def test_that_raggedembedding_raises_error_with_bad_from_values_input():
+def test_that_raggedembedding_raises_error_with_bad_from_summary_input():
     uniques = [["a", "b", "c", "d"], [0, 1, np.nan], [0, "a"]]
     has_nan = [False, True]
     embedding = RaggedEmbedding()
     msg = "length of uniques and has_nan should be equal, got 3, 2"
     with pytest.raises(ValueError, match=msg):
-        embedding.from_values(uniques, has_nan)
+        embedding.from_summary(uniques, has_nan)
 
 
 def test_that_raggedembedding_learns():
@@ -207,16 +280,22 @@ def test_that_raggeddefaultembedding_must_be_fit():
             "cat_c": [0, 1, np.nan, 0],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 
 
 def test_raggeddefaultembedding_repr():
     embedding = RaggedDefaultEmbedding(embedding_size=[2, 3, 2], alpha=2)
-    assert repr(embedding) == "RaggedDefaultEmbedding([2, 3, 2], 2, 'cpu')"
-    embedding = RaggedDefaultEmbedding()
-    assert repr(embedding) == "RaggedDefaultEmbedding('sqrt', 20, 'cpu')"
+    assert repr(embedding) == "RaggedDefaultEmbedding([2, 3, 2], 100, 2, 'cpu')"
+    embedding = RaggedDefaultEmbedding(max_size=200)
+    assert repr(embedding) == "RaggedDefaultEmbedding('sqrt', 200, 20, 'cpu')"
+
+
+def test_raggeddefaultembedding_repr_after_fitting():
+    data_cat = example_data()[["cat_a", "cat_b", "cat_c"]]
+    embedding = RaggedDefaultEmbedding(embedding_size=[2, 3, 2], alpha=2).fit(data_cat)
+    assert repr(embedding) == "RaggedDefaultEmbedding([2, 3, 2], 100, 2, 'cpu')"
 
 
 def test_raggeddefaultembedding_with_pandas_example():
@@ -311,13 +390,13 @@ def test_raggeddefaultembedding_with_tensor_example():
     assert torch.allclose(output[2, 5:7], weight[2][0])
 
 
-def test_that_raggeddefaultembedding_raises_error_with_bad_from_values_input():
+def test_that_raggeddefaultembedding_raises_error_with_bad_from_summary_input():
     unique_counts = [{"a": 4, "b": 3, "c": 2, "d": 1}, {0: 6, 1: 3}, {0: 5, "a": 5}]
     nan_counts = [0, 1]
     embedding = RaggedDefaultEmbedding()
     msg = "length of unique_counts and nan_count should be equal, got 3, 2"
     with pytest.raises(ValueError, match=msg):
-        embedding.from_values(unique_counts, nan_counts)
+        embedding.from_summary(unique_counts, nan_counts)
 
 
 def test_that_raggeddefaultembedding_learns():

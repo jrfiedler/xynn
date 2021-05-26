@@ -49,7 +49,7 @@ class LinearEmbedding(UniformBase):
     def __repr__(self):
         return f"LinearEmbedding({self.embedding_size}, {repr(self._device)})"
 
-    def from_values(self, num_fields: int):
+    def from_summary(self, num_fields: int):
         """
         Create the embedding for the given number of fields
 
@@ -72,7 +72,7 @@ class LinearEmbedding(UniformBase):
         return self
 
     def _fit_array(self, X):
-        self.from_values(X.shape[1])
+        self.from_summary(X.shape[1])
 
     def _fit_iterable(self, X):
         for batch in X:
@@ -93,7 +93,7 @@ class LinearEmbedding(UniformBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
         return self.embedding.weight * X.unsqueeze(dim=-1)
 
 
@@ -145,7 +145,7 @@ class DenseEmbedding(UniformBase):
         device = repr(self._device)
         return f"DenseEmbedding({embed_size}, {activation}, {device})"
 
-    def from_values(self, num_fields: int):
+    def from_summary(self, num_fields: int):
         """
         Create the embedding for the given number of fields
 
@@ -173,7 +173,7 @@ class DenseEmbedding(UniformBase):
         return self
 
     def _fit_array(self, X):
-        self.from_values(X.shape[1])
+        self.from_summary(X.shape[1])
 
     def _fit_iterable(self, X):
         for batch in X:
@@ -194,7 +194,7 @@ class DenseEmbedding(UniformBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
         embedded = self.embedding_w.T.matmul(X.T.to(dtype=torch.float)).T + self.embedding_b
         embedded = self.activation(embedded.reshape((X.shape[0], -1)))
         return embedded.reshape((X.shape[0], *self.embedding_size))

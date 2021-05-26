@@ -17,7 +17,7 @@ def test_that_linearembedding_must_be_fit():
             "num_b": [1, 0.5, 0, 0, -1],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 
@@ -121,7 +121,7 @@ def test_that_denseembedding_must_be_fit():
             "num_b": [1, 0.5, 0, 0, -1],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 

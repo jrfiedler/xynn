@@ -20,7 +20,7 @@ def test_that_basicembedding_must_be_fit():
             "cat_c": [0, 1, np.nan, 0],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 
@@ -151,13 +151,13 @@ def test_that_basicembedding_raises_error_with_wrong_fit_input():
         embedding.fit(data_cat)
 
 
-def test_that_basicembedding_raises_error_with_bad_from_values_input():
+def test_that_basicembedding_raises_error_with_bad_from_summary_input():
     uniques = [["a", "b", "c", "d"], [0, 1, np.nan], [0, "a"]]
     has_nan = [False, True]
     embedding = BasicEmbedding(embedding_size=2)
     msg = "length of uniques and has_nan should be equal, got 3, 2"
     with pytest.raises(ValueError, match=msg):
-        embedding.from_values(uniques, has_nan)
+        embedding.from_summary(uniques, has_nan)
 
 
 def test_that_basicembedding_learns():
@@ -182,7 +182,7 @@ def test_that_defaultembedding_must_be_fit():
             "cat_c": [0, 1, np.nan, 0],
         }
     )
-    msg = "need to call `fit` or `from_values` first"
+    msg = "need to call `fit` or `from_summary` first"
     with pytest.raises(RuntimeError, match=msg):
         embedding(data_test.values)
 
@@ -332,13 +332,13 @@ def test_defaultembedding_with_dataloader_example():
     assert torch.allclose(output[2, 2], weight[9])
 
 
-def test_that_defaultembedding_raises_error_with_bad_from_values_input():
+def test_that_defaultembedding_raises_error_with_bad_from_summary_input():
     unique_counts = [{"a": 4, "b": 3, "c": 2, "d": 1}, {0: 6, 1: 3}, {0: 5, "a": 5}]
     nan_counts = [0, 1]
     embedding = DefaultEmbedding(embedding_size=2, alpha=2)
     msg = "length of unique_counts and nan_counts should be equal, got 3, 2"
     with pytest.raises(ValueError, match=msg):
-        embedding.from_values(unique_counts, nan_counts)
+        embedding.from_summary(unique_counts, nan_counts)
 
 
 def test_that_defaultembedding_learns():

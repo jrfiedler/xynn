@@ -14,6 +14,8 @@ from torch import Tensor
 from torch import nn
 from torch.utils.data import DataLoader
 
+from ..preprocessing import IntegerEncoder
+
 
 def _isnan(value: Any) -> bool:
     return isinstance(value, float) and np.isnan(value)
@@ -130,7 +132,7 @@ class EmbeddingBase(nn.Module, metaclass=ABCMeta):
     def _fit_iterable(self, X):
         return
 
-    def fit(self, X):
+    def fit(self, X) -> "EmbeddingBase":
         """
         Create the embedding from training data
 
@@ -164,35 +166,35 @@ class BasicBase(EmbeddingBase):
     """Base class for embeddings that do not have defaults"""
 
     @abstractmethod
-    def from_values(self, uniques, has_nan):
+    def from_summary(self, uniques, has_nan) -> "BasicBase":
         return self
 
     def _fit_array(self, X):
         uniques, has_nan = _unique(X)
-        self.from_values(uniques, has_nan)
+        self.from_summary(uniques, has_nan)
 
     def _fit_iterable(self, X):
         uniques = []
         has_nan = []
         for batch in X:
             _unique_agg(uniques, has_nan, batch)
-        self.from_values(uniques, has_nan)
+        self.from_summary(uniques, has_nan)
 
 
 class DefaultBase(EmbeddingBase):
     """Base class for embeddings that have a default embedding for each field"""
 
     @abstractmethod
-    def from_values(self, unique_counts, nan_counts):
+    def from_summary(self, unique_counts, nan_counts) -> "DefaultBase":
         return self
 
     def _fit_array(self, X):
         unique_counts, nan_counts = _value_counts(X)
-        self.from_values(unique_counts, nan_counts)
+        self.from_summary(unique_counts, nan_counts)
 
     def _fit_iterable(self, X):
         unique_counts = []
         nan_counts = []
         for batch in X:
             _value_counts_agg(unique_counts, nan_counts, batch)
-        self.from_values(unique_counts, nan_counts)
+        self.from_summary(unique_counts, nan_counts)

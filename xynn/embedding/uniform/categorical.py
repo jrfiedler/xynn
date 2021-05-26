@@ -54,7 +54,7 @@ class BasicEmbedding(UniformBase, BasicBase):
     def __repr__(self):
         return f"BasicEmbedding({repr(self.embedding_size)}, {repr(self._device)})"
 
-    def from_values(
+    def from_summary(
         self, uniques: List[Union[List, Tensor, np.ndarray]], has_nan: List[bool]
     ):
         """
@@ -118,7 +118,7 @@ class BasicEmbedding(UniformBase, BasicBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
 
         idxs: List[List[int]] = []
         for row in X:
@@ -138,7 +138,7 @@ class DefaultEmbedding(UniformBase, DefaultBase):
     """
     An embedding with a default value for each field. The default is returned for
     any field value not seen when the embedding was initialized (using `fit` or
-    `from_values`). For any value seen at initialization, a weighted average of
+    `from_summary`). For any value seen at initialization, a weighted average of
     that value's embedding and the default embedding is returned. The weights for
     the average are determined by the parameter `alpha`:
 
@@ -186,7 +186,7 @@ class DefaultEmbedding(UniformBase, DefaultBase):
         device = repr(self._device)
         return f"DefaultEmbedding({embed_size}, {alpha}, {device})"
 
-    def from_values(self, unique_counts: List[Dict[Any, int]], nan_counts: List[int]):
+    def from_summary(self, unique_counts: List[Dict[Any, int]], nan_counts: List[int]):
         """
         Create the embedding from known value counts for each field
 
@@ -250,7 +250,7 @@ class DefaultEmbedding(UniformBase, DefaultBase):
 
         """
         if not self._isfit:
-            raise RuntimeError("need to call `fit` or `from_values` first")
+            raise RuntimeError("need to call `fit` or `from_summary` first")
 
         list_weights: List[List[List[float]]] = []
         idxs_primary: List[List[int]] = []
