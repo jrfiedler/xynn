@@ -6,6 +6,7 @@ Base classes for modules (PyTorch models)
 from abc import ABCMeta, abstractmethod
 from typing import Union, List, Tuple, Callable, Dict, Optional, Type, Iterable, Any
 
+import numpy as np
 import torch
 from torch import Tensor
 from torch import nn
@@ -264,7 +265,7 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
         self.log("train_loss", avg_loss)
 
-    def validation_step(self, val_batch: List[Tensor], batch_idx: int) -> Dict:
+    def validation_step(self, val_batch: List[Tensor], batch_idx: int) -> Tuple[Tensor, Tensor]:
         """
         Calculate validation loss
 
@@ -277,20 +278,37 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
 
         Returns
         -------
-        dict
-        - maps "val_step_loss" to torch.Tensor loss value
+        (y_pred, y_true) pair of tensors
 
         """
         X_num, X_cat, y = val_batch
         y_hat = self.forward(X_num, X_cat)
-        loss = self.loss_fn(y_hat, y)
-        info = {"val_step_loss": loss}
-        return info
+        return (y_hat, y)
 
-    def custom_val_step(
+    def validation_epoch_end(self, validation_step_outputs: List[Tuple[Tensor, Tensor]]):
+        """
+        Computes average validation loss
+
+        Used by PyTorch Lightning and the Scikit-learn-style classes
+
+        Parameters
+        ----------
+        validation_step_outputs : list of (y_pred, y_true) tensors
+            outputs after all of the validation steps
+
+        Side effect
+        -----------
+        logs average loss as "val_loss"
+
+        """
+        preds = torch.stack([y_hat for y_hat, _ in validation_step_outputs])
+        ytrue = torch.stack([y for _, y in validation_step_outputs])
+        val_loss = self.loss_fn(preds, ytrue)
+        self.log("val_loss", val_loss)
+
+    def custom_val_epoch_end(
         self,
-        val_batch: List[Tensor],
-        batch_idx: int,
+        validation_step_outputs: List[Tuple[Tensor, Tensor]],
         extra_metrics: Iterable[Tuple[str, Callable]],
     ) -> Dict:
         """
@@ -298,9 +316,10 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
 
         Parameters
         ----------
-        val_batch : torch.Tensor
-        batch_idx : int
-        extra_metrics : iterable of (str, callable)
+        validation_step_outputs : list of (y_pred, y_true) tensors
+            outputs after all of the validation steps
+        extra_metrics: list of (str, callable)
+            tuples of str name and callable metric
 
         Returns
         -------
@@ -309,32 +328,14 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         - maps each name in `extra_metrics` to the metric value
 
         """
-        X_num, X_cat, y = val_batch
-        y_hat = self.forward(X_num, X_cat)
-        loss = self.loss_fn(y_hat, y)
-        info = {"val_step_loss": loss}
+        preds = torch.cat([y_hat for y_hat, _ in validation_step_outputs], dim=0)
+        ytrue = torch.cat([y for _, y in validation_step_outputs], dim=0)
+        loss = self.loss_fn(preds, ytrue)
+        info = {"val_loss": loss.item()}
         for name, fn in extra_metrics:
-            info[name] = fn(y_hat, y)
+            loss = fn(preds, ytrue)
+            info[name] = loss.item() if isinstance(loss, (np.ndarray, Tensor)) else loss
         return info
-
-    def validation_epoch_end(self, outputs: List[Dict]):
-        """
-        Computes average validation loss
-
-        Used by PyTorch Lightning and the Scikit-learn-style classes
-
-        Parameters
-        ----------
-        outputs : list of dicts
-            outputs after all of the validation steps
-
-        Side effect
-        -----------
-        logs average loss as "val_loss"
-
-        """
-        avg_loss = torch.stack([x["val_step_loss"] for x in outputs]).mean()
-        self.log("val_loss", avg_loss)
 
     def test_step(self, test_batch: List[Tensor], batch_idx: int) -> Dict:
         """
@@ -391,12 +392,12 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
 
         Parameters
         ----------
-        optimizer : PyTorch Optimizer, optional
+        optimizer : PyTorch Optimizer class, optional
             uninitialized subclass of Optimizer; default is torch.optim.Adam
         opt_kwargs : dict or None, optional
             dict of keyword arguments to initialize optimizer with;
             default is None
-        scheduler : PyTorch scheduler, optional
+        scheduler : PyTorch scheduler class, optional
             default is None
         sch_kwargs : dict or None, optional
             dict of keyword arguments to initialize scheduler with;

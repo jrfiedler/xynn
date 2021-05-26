@@ -110,7 +110,6 @@ def _val_epoch(
     loader: DataLoader,
     extra_metrics: Iterable[Tuple[str, Callable]],
 ) -> LogInfo:
-    val_info = defaultdict(list)
     pbar = tqdm(
         enumerate(loader),
         leave=False,
@@ -118,15 +117,21 @@ def _val_epoch(
         total=len(loader),
     )
     pbar.set_description("Eval")
+    ypairs = []
     for batch_idx, batch in pbar:
-        batch_info = model.custom_val_step(batch, batch_idx, extra_metrics)
-        for name, value in batch_info.items():
-            if "_step" in name:
-                name = name.replace("_step", "")
-            val_info[name].append(value)
-        val_loss = val_info["val_loss"][-1].item()
+        ypair = model.validation_step(batch, batch_idx)
+        val_loss = model.loss_fn(ypair[0], ypair[1]).item()
         pbar.set_postfix({"Loss": f"{val_loss:#.2g}"})
-    return {key: torch.tensor(val).mean().item() for key, val in val_info.items()}
+        ypairs.append(ypair)
+
+    val_info = {}
+    metric_info = model.custom_val_epoch_end(ypairs, extra_metrics)
+    for name, value in metric_info.items():
+        if "_step" in name:
+            name = name.replace("_step", "")
+        val_info[name] = value
+
+    return val_info
 
 
 def _epoch_info(
@@ -228,7 +233,7 @@ def train(
     val_data: Optional[Union[DataLoader, Iterable[DataLoader]]] = None,
     num_epochs: int = 5,
     max_grad_norm: float = float("inf"),
-    extra_metrics: Optional[Iterable[Tuple[str, Callable]]] = None,
+    extra_metrics: Optional[List[Tuple[str, Callable]]] = None,
     scheduler_step: str = "epoch",
     early_stopping_metric: str = "val_loss",
     early_stopping_patience: Union[int, float] = float("inf"),
@@ -253,7 +258,7 @@ def train(
         default is 5
     max_grad_norm : float, optional
         value to clip gradient norms to; default is float("inf") (no clipping)
-    extra_metrics : iterable of (str, callable) tuples or None, optional
+    extra_metrics : list of (str, callable) tuples or None, optional
         default is None
     scheduler_step : {"epoch", "batch"}, optional
         whether the scheduler step should be called each epoch or each batch;
