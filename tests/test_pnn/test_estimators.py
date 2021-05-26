@@ -1,3 +1,5 @@
+from torch import nn
+
 from xynn.pnn import PNNRegressor, PNNClassifier
 from xynn.pnn import PNNPlusRegressor, PNNPlusClassifier
 from xynn.embedding import LinearEmbedding, DefaultEmbedding
@@ -21,7 +23,7 @@ def test_that_pnnregressor_learns():
         "pnn_product_type": "outer",
         "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
-        "mlp_activation": "LeakyReLU",
+        "mlp_activation": nn.LeakyReLU,
         "mlp_use_bn": False,
         "mlp_bn_momentum": 0.1,
         "mlp_dropout": 0.0,
@@ -52,7 +54,7 @@ def test_that_pnnclassifier_learns():
         "pnn_product_type": "inner",
         "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
-        "mlp_activation": "LeakyReLU",
+        "mlp_activation": nn.LeakyReLU,
         "mlp_use_bn": False,
         "mlp_bn_momentum": 0.1,
         "mlp_dropout": 0.0,
@@ -85,7 +87,7 @@ def test_that_pnnplusregressor_learns():
         "pnn_product_type": "both",
         "pnn_product_size": 8,
         "mlp_hidden_sizes": [10, 8, 8, 6],
-        "mlp_activation": "LeakyReLU",
+        "mlp_activation": nn.LeakyReLU,
         "mlp_use_bn": False,
         "mlp_bn_momentum": 0.1,
         "mlp_dropout": 0.0,
@@ -101,9 +103,11 @@ def test_that_pnnplusregressor_learns():
 
 
 def test_that_pnnplusclassifier_learns():
+    embed_num = LinearEmbedding(10)
+    embed_cat = DefaultEmbedding(10)
     estimator = PNNPlusClassifier(
-        embedding_num=LinearEmbedding(10),
-        embedding_cat=DefaultEmbedding(10),
+        embedding_num=embed_num,
+        embedding_cat=embed_cat,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_leaky_gate=False,
@@ -111,14 +115,14 @@ def test_that_pnnplusclassifier_learns():
     )
     check_estimator_learns(estimator, task="classification")
     assert estimator.init_parameters == {
-        "embedding_num": "LinearEmbedding(10, 'cpu')",
-        "embedding_cat": "DefaultEmbedding(10, 20, 'cpu')",
+        "embedding_num": embed_num,
+        "embedding_cat": embed_cat,
         "embedding_l1_reg": 0.0,
         "embedding_l2_reg": 0.0,
         "pnn_product_type": "outer",
         "pnn_product_size": 10,
         "mlp_hidden_sizes": [10, 8, 8, 6],
-        "mlp_activation": "LeakyReLU",
+        "mlp_activation": nn.LeakyReLU,
         "mlp_use_bn": False,
         "mlp_bn_momentum": 0.1,
         "mlp_dropout": 0.0,
@@ -131,3 +135,5 @@ def test_that_pnnplusclassifier_learns():
         "seed": None,
         "device": "cpu",
     }
+    assert repr(estimator._model.embedding_num) == "LinearEmbedding(10, 'cpu')"
+    assert repr(estimator._model.embedding_cat) == "DefaultEmbedding(10, 20, 'cpu')"

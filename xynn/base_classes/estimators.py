@@ -52,6 +52,12 @@ def _param_json(value):
     return value
 
 
+def _param_repr(value):
+    if inspect.isclass(value):
+        return value.__name__
+    return repr(value)
+
+
 ESTIMATOR_INIT_DOC = """
 Parameters
 ----------
@@ -150,10 +156,17 @@ class BaseEstimator(metaclass=ABCMeta):
             "device": device
         }
         self.init_parameters = {
-            k: _param_json(v)
+            key: val
             for params in (init_params_bef, model_kwargs, init_params_aft)
-            for k, v in params.items()
+            for key, val in params.items()
         }
+
+    def __repr__(self):
+        init_params = ",\n    ".join(
+            f"{key}={_param_repr(val)}" for key, val in self.init_parameters.items()
+        )
+        repr_str = f"{self.__class__.__name__}(\n    {init_params},\n)"
+        return repr_str
 
     def mlp_weight_sum(self) -> Tuple[float, float]:
         """
@@ -316,15 +329,18 @@ class BaseEstimator(metaclass=ABCMeta):
         X_num : torch.Tensor, numpy.ndarray, or None
         X_cat : torch.Tensor, numpy.ndarray, or None
         y : torch.Tensor or numpy.ndarray
-        optimizer : tuple
-            tuple should contain optimization callable as first element and
-            dict of arguments as second element
-            example: (torch.optim.Adam, {"lr": 1e-1})
-        scheduler : tuple
-            tuple should contain scheduler callable as first element and
-            dict of arguments as second element
-            example:
-              (torch.optim.lr_scheduler.ReduceLROnPlateau, {"patience": 5})
+
+        optimizer : PyTorch Optimizer class, optional
+            uninitialized subclass of Optimizer; default is `torch.optim.Adam`
+        opt_kwargs : dict or None, optional
+            dict of keyword arguments to initialize optimizer with;
+            default is None
+        scheduler : PyTorch scheduler class, optional
+            example: `torch.optim.lr_scheduler.ReduceLROnPlateau`
+            default is None
+        sch_kwargs : dict or None, optional
+            dict of keyword arguments to initialize scheduler with;
+            default is None
         val_sets : list of tuples, or None; optional
             each tuple should be (X_num, X_cat, y) validation data;
             default is None
@@ -335,6 +351,8 @@ class BaseEstimator(metaclass=ABCMeta):
         warm_start : boolean, optional
             whether to re-create the model before fitting (warm_start == False),
             or refine the training (warm_start == True); default is False
+        extra_metrics : list of (str, callable) tuples or None, optional
+            default is None
         early_stopping_metric : str, optional
             should be "val_loss" or one of the passed `extra_metrics`;
             default is "val_loss"
@@ -404,7 +422,9 @@ class BaseEstimator(metaclass=ABCMeta):
 
         if log_path:
             info = {
-                "init_parameters": self.init_parameters,
+                "init_parameters": {
+                    key: _param_json(val) for key, val in self.init_parameters.items()
+                },
                 "fit_parameters": {
                     "optimizer": str(optimizer.__name__),
                     "opt_kwargs": opt_kwargs,
