@@ -150,6 +150,8 @@ class XDeepFM(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        embedding_l1_reg: float = 0.0,
+        embedding_l2_reg: float = 0.0,
         cin_layer_sizes: Union[int, Tuple[int, ...], List[int]] = (128, 128),
         cin_activation: Type[nn.Module] = nn.LeakyReLU,
         cin_full_agg: bool = False,
@@ -164,10 +166,23 @@ class XDeepFM(BaseNN):
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        mlp_l1_reg: float = 0.0,
+        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+            device,
+        )
+
         device = torch.device(device)
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
 

@@ -290,6 +290,8 @@ class PNN(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        embedding_l1_reg: float = 0.0,
+        embedding_l2_reg: float = 0.0,
         pnn_product_type: str = "outer",
         pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
@@ -299,10 +301,23 @@ class PNN(BaseNN):
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        mlp_l1_reg: float = 0.0,
+        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+            device,
+        )
+
         self.pnn = PNNCore(
             task="classification",
             output_size=output_size,
@@ -389,6 +404,8 @@ class PNNPlus(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        embedding_l1_reg: float = 0.0,
+        embedding_l2_reg: float = 0.0,
         pnn_product_type: str = "outer",
         pnn_product_size: int = 10,
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
@@ -398,11 +415,23 @@ class PNNPlus(BaseNN):
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        mlp_l1_reg: float = 0.0,
+        mlp_l2_reg: float = 0.0,
         weighted_sum: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+            device,
+        )
 
         if pnn_product_type not in {"inner", "outer", "both"}:
             raise ValueError("pnn_product_type should be 'inner', 'outer', or 'both'")

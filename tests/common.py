@@ -83,13 +83,26 @@ class SimpleMLP(BaseNN):
         task="regression",
         embedding_num=None,
         embedding_cat=None,
+        embedding_l1_reg=0.0,
+        embedding_l2_reg=0.0,
         input_size=11,
         hidden_sizes=(7,),
         output_size=3,
+        mlp_l1_reg=0.0,
+        mlp_l2_reg=0.0,
         loss_fn="auto",
         mix_value=None,
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+        )
         layers = []
         for size in hidden_sizes:
             layers.append(nn.Linear(input_size, size))

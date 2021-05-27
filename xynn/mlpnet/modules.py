@@ -35,6 +35,8 @@ class MLPNet(BaseNN):
         output_size: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        embedding_l1_reg: float = 0.0,
+        embedding_l2_reg: float = 0.0,
         num_numeric_fields: Union[int, str] = "auto",
         mlp_hidden_sizes: Union[int, Tuple[int, ...], List[int]] = (512, 256, 128, 64),
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
@@ -43,18 +45,32 @@ class MLPNet(BaseNN):
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        mlp_l1_reg: float = 0.0,
+        mlp_l2_reg: float = 0.0,
         weighted_sum: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+            device,
+        )
 
         embed_info = check_embeddings(embedding_num, embedding_cat)
 
         if embedding_num is not None:
             input_size = embed_info.output_size
         elif not isinstance(num_numeric_fields, int):
-            raise TypeError("when embedding_num is None, num_numeric_fields must be an integer")
+            raise TypeError(
+                "when embedding_num is None, num_numeric_fields must be an integer"
+            )
         else:
             input_size = embed_info.output_size + num_numeric_fields
 

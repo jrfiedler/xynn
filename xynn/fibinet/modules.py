@@ -329,9 +329,11 @@ class FiBiNet(BaseNN):
         self,
         task: str,
         output_size: int,
+        num_numeric_fields: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
-        num_numeric_fields: int,
+        embedding_l1_reg: float = 0.0,
+        embedding_l2_reg: float = 0.0,
         fibi_reduction_ratio: int = 3,
         fibi_activation: Type[nn.Module] = nn.LeakyReLU,
         fibi_senet_product: str = "sym-interaction",
@@ -344,10 +346,22 @@ class FiBiNet(BaseNN):
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        mlp_l1_reg: float = 0.0,
+        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
-        super().__init__(task, embedding_num, embedding_cat, loss_fn, device)
+        super().__init__(
+            task,
+            embedding_num,
+            embedding_cat,
+            embedding_l1_reg,
+            embedding_l2_reg,
+            mlp_l1_reg,
+            mlp_l2_reg,
+            loss_fn,
+            device,
+        )
 
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
         num_fields, embed_size, tot_embed_size = embed_info

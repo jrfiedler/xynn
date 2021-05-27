@@ -34,6 +34,10 @@ embedding_num : EmbeddingBase or None
     initialized and fit embedding for numeric fields
 embedding_cat : EmbeddingBase or None
     initialized and fit embedding for categorical fields
+embedding_l1_reg : float, optional
+    value for l1 regularization of embedding vectors; default is 0.0
+embedding_l2_reg : float, optional
+    value for l2 regularization of embedding vectors; default is 0.0
 {}
 mlp_hidden_sizes : int or iterable of int, optional
     sizes for the linear transformations between the MLP input and
@@ -54,6 +58,10 @@ mlp_leaky_gate : boolean, optional
 mlp_use_skip : boolean, optional
     use a side path in the MLP containing just the optional leaky gate
     plus single linear layer; default is True
+mlp_l1_reg : float, optional
+    value for l1 regularization of MLP weights; default is 0.0
+mlp_l2_reg : float, optional
+    value for l2 regularization of MLP weights; default is 0.0
 loss_fn : "auto" or PyTorch loss function, optional
     default is "auto"
 device : string or torch.device, optional
@@ -77,6 +85,10 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         task: str,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
+        embedding_l1_reg: float,
+        embedding_l2_reg: float,
+        mlp_l1_reg: float,
+        mlp_l2_reg: float,
         loss_fn: Union[str, Callable],
         device: Union[str, torch.device] = "cpu",
     ):
@@ -88,6 +100,14 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
             initialized and fit embedding for numeric fields
         embedding_cat : EmbeddingBase or None
             initialized and fit embedding for categorical fields
+        embedding_l1_reg : float
+            value for l1 regularization of embedding vectors
+        embedding_l2_reg : float
+            value for l2 regularization of embedding vectors
+        mlp_l1_reg : float
+            value for l1 regularization of MLP weights
+        mlp_l2_reg : float
+            value for l2 regularization of MLP weights
         loss_fn : "auto" or PyTorch loss function, optional
             default is "auto"
         device : string or torch.device, optional
@@ -112,6 +132,10 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
 
         self.embedding_num = embedding_num
         self.embedding_cat = embedding_cat
+        self.embedding_l1_reg = embedding_l1_reg
+        self.embedding_l2_reg = embedding_l2_reg
+        self.mlp_l1_reg = mlp_l1_reg
+        self.mlp_l2_reg = mlp_l2_reg
         self.optimizer: Optional[Callable] = None
         self.optimizer_info: Dict[str, Any] = {}
         self.scheduler: Dict[str, Any] = {}
@@ -244,6 +268,12 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         X_num, X_cat, y = train_batch
         y_hat = self.forward(X_num, X_cat)
         loss = self.loss_fn(y_hat, y)
+        if self.mlp_l1_reg > 0 or self.mlp_l2_reg > 0:
+            w1, w2 = self.mlp_weight_sum()
+            loss += self.mlp_l1_reg * w1 + self.mlp_l2_reg * w2
+        if self.embedding_l1_reg > 0 or self.embedding_l2_reg > 0:
+            w1, w2 = self.embedding_sum()
+            loss += self.embedding_l1_reg * w1 + self.embedding_l2_reg * w2
         return {"loss": loss}
 
     def training_epoch_end(self, outputs: List[Dict]):

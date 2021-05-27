@@ -114,10 +114,6 @@ class BaseEstimator(metaclass=ABCMeta):
         self,
         embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
-        embedding_l1_reg: float = 0.0,
-        embedding_l2_reg: float = 0.0,
-        mlp_l1_reg: float = 0.0,
-        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         seed: Union[int, None] = None,
         device: Union[str, torch.device] = "cpu",
@@ -126,10 +122,6 @@ class BaseEstimator(metaclass=ABCMeta):
         self.task = ""
         self.embedding_num = embedding_num
         self.embedding_cat = embedding_cat
-        self.embedding_l1_reg = embedding_l1_reg
-        self.embedding_l2_reg = embedding_l2_reg
-        self.mlp_l1_reg = mlp_l1_reg
-        self.mlp_l2_reg = mlp_l2_reg
         self.model_kwargs = model_kwargs if model_kwargs else {}
         self.seed = seed
         self.train_info = []
@@ -145,12 +137,8 @@ class BaseEstimator(metaclass=ABCMeta):
         init_params_bef = {
             "embedding_num": embedding_num,
             "embedding_cat": embedding_cat,
-            "embedding_l1_reg": embedding_l1_reg,
-            "embedding_l2_reg": embedding_l2_reg,
         }
         init_params_aft = {
-            "mlp_l1_reg": mlp_l1_reg,
-            "mlp_l2_reg": mlp_l2_reg,
             "loss_fn": loss_fn,
             "seed": seed,
             "device": device
@@ -456,10 +444,6 @@ class BaseClassifier(BaseEstimator):
         self,
         embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
-        embedding_l1_reg: float = 0.0,
-        embedding_l2_reg: float = 0.0,
-        mlp_l1_reg: float = 0.0,
-        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         seed: Union[int, None] = None,
         device: Union[str, torch.device] = "cpu",
@@ -468,10 +452,6 @@ class BaseClassifier(BaseEstimator):
         super().__init__(
             embedding_num=embedding_num,
             embedding_cat=embedding_cat,
-            embedding_l1_reg=embedding_l1_reg,
-            embedding_l2_reg=embedding_l2_reg,
-            mlp_l1_reg=mlp_l1_reg,
-            mlp_l2_reg=mlp_l2_reg,
             seed=seed,
             device=device,
             model_kwargs=model_kwargs,
@@ -563,10 +543,6 @@ class BaseRegressor(BaseEstimator):
         self,
         embedding_num: Optional[Union[str, EmbeddingBase]] = "auto",
         embedding_cat: Optional[Union[str, EmbeddingBase]] = "auto",
-        embedding_l1_reg: float = 0.0,
-        embedding_l2_reg: float = 0.0,
-        mlp_l1_reg: float = 0.0,
-        mlp_l2_reg: float = 0.0,
         loss_fn: Union[str, Callable] = "auto",
         seed: Union[int, None] = None,
         device: Union[str, torch.device] = "cpu",
@@ -575,10 +551,6 @@ class BaseRegressor(BaseEstimator):
         super().__init__(
             embedding_num=embedding_num,
             embedding_cat=embedding_cat,
-            embedding_l1_reg=embedding_l1_reg,
-            embedding_l2_reg=embedding_l2_reg,
-            mlp_l1_reg=mlp_l1_reg,
-            mlp_l2_reg=mlp_l2_reg,
             seed=seed,
             device=device,
             model_kwargs=model_kwargs,

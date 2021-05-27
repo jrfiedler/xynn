@@ -1,10 +1,75 @@
+import torch
 from torch import nn
 
 from xynn.pnn import PNNRegressor, PNNClassifier
 from xynn.pnn import PNNPlusRegressor, PNNPlusClassifier
 from xynn.embedding import LinearEmbedding, DefaultEmbedding
 
-from ..common import check_estimator_learns
+from ..common import check_estimator_learns, simple_data
+
+
+def test_that_basic_params_are_passed_to_pnn_module():
+    X_num, X_cat, y = simple_data(task="classification")
+    estimator = PNNClassifier(
+        embedding_l2_reg=0.2,
+        mlp_l1_reg=0.1,
+    )
+    estimator.fit(
+        X_num=X_num,
+        X_cat=X_cat,
+        y=y,
+        optimizer=torch.optim.Adam,
+        opt_kwargs={"lr": 1e-1},
+        num_epochs=1,
+    )
+
+    model = estimator._model
+
+    assert model.task == "classification"
+    assert model.num_epochs == 1
+    assert isinstance(model.loss_fn, nn.CrossEntropyLoss)
+    assert model.embedding_num is not None
+    assert model.embedding_cat is not None
+    assert model.embedding_l1_reg == 0.0
+    assert model.embedding_l2_reg == 0.2
+    assert model.mlp_l1_reg == 0.1
+    assert model.mlp_l2_reg == 0.0
+    assert model.optimizer is not None
+    assert model.optimizer_info != {}
+    assert model.scheduler == {}
+    assert model._device == torch.device("cpu")
+
+
+def test_that_basic_params_are_passed_to_pnnplus_module():
+    X_num, X_cat, y = simple_data(task="classification")
+    estimator = PNNPlusClassifier(
+        embedding_l2_reg=0.2,
+        mlp_l1_reg=0.1,
+    )
+    estimator.fit(
+        X_num=X_num,
+        X_cat=X_cat,
+        y=y,
+        optimizer=torch.optim.Adam,
+        opt_kwargs={"lr": 1e-1},
+        num_epochs=1,
+    )
+
+    model = estimator._model
+
+    assert model.task == "classification"
+    assert model.num_epochs == 1
+    assert isinstance(model.loss_fn, nn.CrossEntropyLoss)
+    assert model.embedding_num is not None
+    assert model.embedding_cat is not None
+    assert model.embedding_l1_reg == 0.0
+    assert model.embedding_l2_reg == 0.2
+    assert model.mlp_l1_reg == 0.1
+    assert model.mlp_l2_reg == 0.0
+    assert model.optimizer is not None
+    assert model.optimizer_info != {}
+    assert model.scheduler == {}
+    assert model._device == torch.device("cpu")
 
 
 def test_that_pnnregressor_learns():

@@ -73,6 +73,8 @@ def test_that_xdeepfm_uses_basenn_init():
         output_size=3,
         embedding_num=embedding_num,
         embedding_cat=None,
+        embedding_l2_reg=0.2,
+        mlp_l1_reg=0.1
     )
 
     assert model.task == "classification"
@@ -80,6 +82,10 @@ def test_that_xdeepfm_uses_basenn_init():
     assert isinstance(model.loss_fn, nn.CrossEntropyLoss)
     assert model.embedding_num is embedding_num
     assert model.embedding_cat is None
+    assert model.embedding_l1_reg == 0.0
+    assert model.embedding_l2_reg == 0.2
+    assert model.mlp_l1_reg == 0.1
+    assert model.mlp_l2_reg == 0.0
     assert model.optimizer is None
     assert model.optimizer_info == {}
     assert model.scheduler == {}
