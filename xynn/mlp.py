@@ -187,7 +187,7 @@ class MLP(nn.Module):
 
         self.to(device)
 
-    def weight_sum(self) -> Tuple[float, float]:
+    def weight_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and squared weights, for regularization
 
@@ -207,8 +207,8 @@ class MLP(nn.Module):
             for layer in layer_group:
                 if not isinstance(layer, nn.Linear):
                     continue
-                w1_sum += layer.weight.abs().sum().item()
-                w2_sum += (layer.weight ** 2).sum().item()
+                w1_sum += layer.weight.abs().sum()
+                w2_sum += (layer.weight ** 2).sum()
         return w1_sum, w2_sum
 
     def forward(self, X: Tensor) -> Tuple[float, float]:

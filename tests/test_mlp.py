@@ -81,10 +81,10 @@ def test_simple_mlp_with_bias():
 	assert torch.all(output == expected).item()
 
 	w1_sum, w2_sum = mlp.weight_sum()
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, weight.abs().sum().item())
-	assert np.isclose(w2_sum, (weight ** 2).sum().item())
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), weight.abs().sum().item())
+	assert np.isclose(w2_sum.item(), (weight ** 2).sum().item())
 
 
 def test_simple_mlp_without_bias():
@@ -118,10 +118,10 @@ def test_simple_mlp_without_bias():
 	assert torch.all(output == expected).item()
 
 	w1_sum, w2_sum = mlp.weight_sum()
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, weight.abs().sum().item())
-	assert np.isclose(w2_sum, (weight ** 2).sum().item())
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), weight.abs().sum().item())
+	assert np.isclose(w2_sum.item(), (weight ** 2).sum().item())
 
 
 def test_mlp_with_bigger_example():
@@ -146,10 +146,10 @@ def test_mlp_with_bigger_example():
 	w1_sum, w2_sum = mlp.weight_sum()
 	exp_w1_sum = sum(l.weight.abs().sum().item() for l in mlp.main_layers[::2])
 	exp_w2_sum = sum((l.weight ** 2).sum().item() for l in mlp.main_layers[::2])
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, exp_w1_sum)
-	assert np.isclose(w2_sum, exp_w2_sum)
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), exp_w1_sum)
+	assert np.isclose(w2_sum.item(), exp_w2_sum)
 
 
 def test_mlp_with_bigger_example_with_leaky_gate_and_skip():
@@ -182,10 +182,10 @@ def test_mlp_with_bigger_example_with_leaky_gate_and_skip():
 		for layer_group in (mlp.main_layers[1::2], mlp.skip_layers[1:])
 		for l in layer_group
 	)
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, exp_w1_sum)
-	assert np.isclose(w2_sum, exp_w2_sum)
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), exp_w1_sum)
+	assert np.isclose(w2_sum.item(), exp_w2_sum)
 
 
 def test_mlp_with_dropout():
@@ -224,10 +224,10 @@ def test_mlp_with_dropout():
 	w1_sum, w2_sum = mlp.weight_sum()
 	exp_w1_sum = sum(l.weight.abs().sum().item() for l in mlp.main_layers[1::3])
 	exp_w2_sum = sum((l.weight ** 2).sum().item() for l in mlp.main_layers[1::3])
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, exp_w1_sum)
-	assert np.isclose(w2_sum, exp_w2_sum)
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), exp_w1_sum)
+	assert np.isclose(w2_sum.item(), exp_w2_sum)
 
 
 def test_that_mlp_raises_error_with_wrong_number_of_dropout_values():
@@ -289,10 +289,10 @@ def test_mlp_with_various_options():
 		for layer_group in (mlp.main_layers[1::3], mlp.skip_layers[1:])
 		for l in layer_group
 	)
-	assert isinstance(w2_sum, float)
-	assert isinstance(w2_sum, float)
-	assert np.isclose(w1_sum, exp_w1_sum)
-	assert np.isclose(w2_sum, exp_w2_sum)
+	assert isinstance(w1_sum, torch.Tensor)
+	assert isinstance(w2_sum, torch.Tensor)
+	assert np.isclose(w1_sum.item(), exp_w1_sum)
+	assert np.isclose(w2_sum.item(), exp_w2_sum)
 
 
 def test_that_mlp_learns():

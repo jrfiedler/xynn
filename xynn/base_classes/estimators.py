@@ -156,7 +156,7 @@ class BaseEstimator(metaclass=ABCMeta):
         repr_str = f"{self.__class__.__name__}(\n    {init_params},\n)"
         return repr_str
 
-    def mlp_weight_sum(self) -> Tuple[float, float]:
+    def mlp_weight_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and square of weights in MLP layers
 
@@ -168,9 +168,9 @@ class BaseEstimator(metaclass=ABCMeta):
         """
         if self._model:
             return self._model.mlp_weight_sum()
-        return 0.0, 0.0
+        return torch.tensor([0.0]), torch.tensor([0.0])
 
-    def embedding_sum(self) -> Tuple[float, float]:
+    def embedding_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and square of embedding values
 
@@ -182,7 +182,7 @@ class BaseEstimator(metaclass=ABCMeta):
         """
         if self._model:
             return self._model.embedding_sum()
-        return 0.0, 0.0
+        return torch.tensor([0.0]), torch.tensor([0.0])
 
     def num_parameters(self) -> int:
         """

@@ -222,8 +222,8 @@ def test_pnn_mlp_weight():
     w1, w2 = model.mlp_weight_sum()
     exp_w1 = sum(l.weight.abs().sum().item() for l in mlp.main_layers[::2])
     exp_w2 = sum((l.weight ** 2).sum().item() for l in mlp.main_layers[::2])
-    assert np.isclose(w1, exp_w1)
-    assert np.isclose(w2, exp_w2)
+    assert np.isclose(w1.item(), exp_w1)
+    assert np.isclose(w2.item(), exp_w2)
 
 
 def test_pnnplus_mlp_weight():
@@ -246,8 +246,8 @@ def test_pnnplus_mlp_weight():
     exp_w2 = sum((l.weight ** 2).sum().item() for l in mlp1.main_layers[::2])
     exp_w1 += sum(l.weight.abs().sum().item() for l in mlp2.main_layers[::2])
     exp_w2 += sum((l.weight ** 2).sum().item() for l in mlp2.main_layers[::2])
-    assert np.isclose(w1, exp_w1)
-    assert np.isclose(w2, exp_w2)
+    assert np.isclose(w1.item(), exp_w1)
+    assert np.isclose(w2.item(), exp_w2)
 
 
 def test_that_pnn_learns():

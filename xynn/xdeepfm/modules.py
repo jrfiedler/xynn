@@ -276,7 +276,7 @@ class XDeepFM(BaseNN):
         """
         print("\n" + textwrap.dedent(gram))
 
-    def mlp_weight_sum(self) -> Tuple[float, float]:
+    def mlp_weight_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and square of weights in MLP layers
 

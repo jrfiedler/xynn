@@ -142,10 +142,10 @@ class BaseNN(BaseClass, metaclass=ABCMeta):
         self._device = device
 
     @abstractmethod
-    def mlp_weight_sum(self) -> Tuple[float, float]:
-        return 0.0, 0.0
+    def mlp_weight_sum(self) -> Tuple[Tensor, Tensor]:
+        return torch.tensor([0.0]), torch.tensor([0.0])
 
-    def embedding_sum(self) -> Tuple[float, float]:
+    def embedding_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and square of embedding values
 

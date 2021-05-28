@@ -189,8 +189,8 @@ def test_autoint_mlp_weight():
         exp_w2 += sum((l.weight ** 2).sum().item() for l in mlp.main_layers[::2])
 
     w1, w2 = model.mlp_weight_sum()
-    assert np.isclose(w1, exp_w1)
-    assert np.isclose(w2, exp_w2)
+    assert np.isclose(w1.item(), exp_w1)
+    assert np.isclose(w2.item(), exp_w2)
 
     # with MLP after CIN
     model = AutoInt(
@@ -211,8 +211,8 @@ def test_autoint_mlp_weight():
         exp_w2 += sum((l.weight ** 2).sum().item() for l in mlp.main_layers[::2])
 
     w1, w2 = model.mlp_weight_sum()
-    assert np.isclose(w1, exp_w1)
-    assert np.isclose(w2, exp_w2)
+    assert np.isclose(w1.item(), exp_w1)
+    assert np.isclose(w2.item(), exp_w2)
 
 
 def test_that_autoint_learns():

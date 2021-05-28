@@ -64,7 +64,7 @@ class RaggedBase(EmbeddingBase):
         super().__init__()
         self.embedding: Optional[nn.ModuleList] = None
 
-    def weight_sum(self) -> Tuple[float, float]:
+    def weight_sum(self) -> Tuple[Tensor, Tensor]:
         """
         Sum of absolute value and square of embedding weights
 
@@ -78,8 +78,8 @@ class RaggedBase(EmbeddingBase):
         e1_sum = 0.0
         e2_sum = 0.0
         for embedding in self.embedding:
-            e1_sum += embedding.weight.abs().sum().item()
-            e2_sum += (embedding.weight ** 2).sum().item()
+            e1_sum += embedding.weight.abs().sum()
+            e2_sum += (embedding.weight ** 2).sum()
         return e1_sum, e2_sum
 
 

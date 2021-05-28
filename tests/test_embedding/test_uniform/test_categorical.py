@@ -128,17 +128,16 @@ def test_basicembedding_weight_sum():
     assert embedding.weight_sum() == (0.0, 0.0)
 
     embedding.fit(data_cat)
-    e1_sum, e2_sum = embedding.weight_sum()
-    assert isinstance(e1_sum, float)
-    assert isinstance(e2_sum, float)
 
     weight = embedding.embedding.weight
     embedding.embedding.weight = nn.Parameter(torch.ones(weight.shape))
+
     e1_sum, e2_sum = embedding.weight_sum()
-    assert isinstance(e1_sum, float)
-    assert isinstance(e2_sum, float)
-    assert e1_sum == weight.shape[0] * weight.shape[1]
-    assert e2_sum == weight.shape[0] * weight.shape[1]
+
+    assert isinstance(e1_sum, torch.Tensor)
+    assert isinstance(e2_sum, torch.Tensor)
+    assert e1_sum.item() == weight.shape[0] * weight.shape[1]
+    assert e2_sum.item() == weight.shape[0] * weight.shape[1]
 
 
 def test_that_basicembedding_raises_error_with_wrong_fit_input():

@@ -129,9 +129,6 @@ def test_raggedembedding_weight_sum():
     assert embedding.weight_sum() == (0.0, 0.0)
 
     embedding.fit(data_cat)
-    e1_sum, e2_sum = embedding.weight_sum()
-    assert isinstance(e1_sum, float)
-    assert isinstance(e2_sum, float)
 
     expected_e1_sum = 0.0
     expected_e2_sum = 0.0
@@ -140,11 +137,13 @@ def test_raggedembedding_weight_sum():
         layer.weight = nn.Parameter(torch.ones(weight.shape))
         expected_e1_sum += weight.shape[0] * weight.shape[1]
         expected_e2_sum += weight.shape[0] * weight.shape[1]
+
     e1_sum, e2_sum = embedding.weight_sum()
-    assert isinstance(e1_sum, float)
-    assert isinstance(e2_sum, float)
-    assert e1_sum == expected_e1_sum
-    assert e2_sum == expected_e2_sum
+
+    assert isinstance(e1_sum, torch.Tensor)
+    assert isinstance(e2_sum, torch.Tensor)
+    assert e1_sum.item() == expected_e1_sum
+    assert e2_sum.item() == expected_e2_sum
 
 
 def test_raggedembedding_initialization_with_from_values():
