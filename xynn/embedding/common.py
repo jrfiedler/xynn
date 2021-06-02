@@ -114,6 +114,14 @@ def _value_counts_agg(unique_counts, nan_counts, batch):
     return unique_counts, nan_counts
 
 
+def _flatten_counts(unique_counts: List[Dict[int, int]]) -> List[int]:
+    counts = [
+        [count.get(i, 0) for i in range(max(count) + 1)]
+        for count in unique_counts
+    ]
+    return counts
+
+
 class EmbeddingBase(nn.Module, metaclass=ABCMeta):
     """
     Base class for embeddings
@@ -198,3 +206,65 @@ class DefaultBase(EmbeddingBase):
         for batch in X:
             _value_counts_agg(unique_counts, nan_counts, batch)
         self.from_summary(unique_counts, nan_counts)
+
+
+class FastBasicBase(EmbeddingBase):
+    """Base class for embeddings that do not have defaults"""
+
+    @abstractmethod
+    def from_summary(self, num_classes: List[int]) -> "FastBasicBase":
+        return self
+
+    def from_encoder(self, encoder: IntegerEncoder) -> "FastBasicBase":
+        if not isinstance(encoder, IntegerEncoder):
+            raise TypeError("encoder needs to be a fit IntegerEncoder")
+        if not encoder._isfit:
+            raise ValueError("encoder needs to be fit")
+        return self.from_summary(encoder.num_classes)
+
+    def _fit_array(self, X):
+        uniques, has_nan = _unique(X)
+        if any(has_nan):
+            raise ValueError("NaN found in categorical data")
+        self.from_summary([max(col_uniques) + 1 for col_uniques in uniques])
+
+    def _fit_iterable(self, X):
+        uniques = []
+        has_nan = []
+        for batch in X:
+            _unique_agg(uniques, has_nan, batch)
+        if any(has_nan):
+            raise ValueError("NaN found in categorical data")
+        self.from_summary([max(col_uniques) + 1 for col_uniques in uniques])
+
+
+class FastDefaultBase(EmbeddingBase):
+    """Base class for embeddings that have a default embedding for each field"""
+
+    @abstractmethod
+    def from_summary(self, class_counts: List[List[int]]) -> "FastDefaultBase":
+        return self
+
+    def from_encoder(self, encoder: IntegerEncoder) -> "FastDefaultBase":
+        if not isinstance(encoder, IntegerEncoder):
+            raise TypeError("encoder needs to be a fit IntegerEncoder")
+        if not encoder._isfit:
+            raise ValueError("encoder needs to be fit")
+        return self.from_summary(encoder.class_counts)
+
+    def _fit_array(self, X):
+        unique_counts, nan_counts = _value_counts(X)
+        if any(nan_counts):
+            raise ValueError("NaN found in categorical data")
+        counts = _flatten_counts(unique_counts)
+        self.from_summary(counts)
+
+    def _fit_iterable(self, X):
+        unique_counts = []
+        nan_counts = []
+        for batch in X:
+            _value_counts_agg(unique_counts, nan_counts, batch)
+            if any(nan_counts):
+                raise ValueError("NaN found in categorical data")
+        counts = _flatten_counts(unique_counts)
+        self.from_summary(counts)
