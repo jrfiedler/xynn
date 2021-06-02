@@ -216,6 +216,18 @@ class FastBasicBase(EmbeddingBase):
         return self
 
     def from_encoder(self, encoder: IntegerEncoder) -> "FastBasicBase":
+        """
+        Initialize from a fit IntegerEncoder
+
+        Parameters
+        ----------
+        encoder : IntegerEncoder
+
+        Return
+        ------
+        self
+
+        """
         if not isinstance(encoder, IntegerEncoder):
             raise TypeError("encoder needs to be a fit IntegerEncoder")
         if not encoder._isfit:
@@ -246,6 +258,18 @@ class FastDefaultBase(EmbeddingBase):
         return self
 
     def from_encoder(self, encoder: IntegerEncoder) -> "FastDefaultBase":
+        """
+        Initialize from a fit IntegerEncoder
+
+        Parameters
+        ----------
+        encoder : IntegerEncoder
+
+        Return
+        ------
+        self
+
+        """
         if not isinstance(encoder, IntegerEncoder):
             raise TypeError("encoder needs to be a fit IntegerEncoder")
         if not encoder._isfit:

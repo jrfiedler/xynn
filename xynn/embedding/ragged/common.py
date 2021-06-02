@@ -5,12 +5,10 @@ FastAI embedding size: arXiv preprint arXiv:2002.04688
 
 """
 
-from math import ceil, sqrt, log
 from collections.abc import Iterable as IterableClass
-from typing import Any, Union, List, Dict, Iterable, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
-import torch
 from torch import nn, Tensor
 
 from ..common import EmbeddingBase

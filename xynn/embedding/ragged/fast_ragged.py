@@ -18,15 +18,12 @@ FastRaggedDefaultEmbedding
 
 """
 
-from collections.abc import Iterable as IterableClass
-from typing import Any, Union, List, Dict, Iterable, Optional, Tuple
+from typing import Union, List, Optional, Iterable
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch import nn
 
-from ..common import _isnan
 from ..common import FastBasicBase, FastDefaultBase
 from .common import RaggedBase, _check_embedding_size, _parse_embedding_size
 
@@ -183,11 +180,13 @@ class FastRaggedDefaultEmbedding(RaggedBase, FastDefaultBase):
         self.num_fields = 0
         self.output_size = 0
         self.alpha = alpha
-        self.num_classes: List[int] = []
         self.embedding: Optional[nn.ModuleList] = None
         self.embedding_size_orig = embedding_size
         self.embedding_size = embedding_size
         self.max_size = max_size
+        self.num_classes: List[int] = []
+        self.max_values: Optional[Tensor] = None
+        self.counts: List[Tensor] = []
         self._device = device
         self.to(device)
         self._isfit = False

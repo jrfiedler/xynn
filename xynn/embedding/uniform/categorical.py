@@ -270,6 +270,10 @@ class DefaultEmbedding(UniformBase, DefaultBase):
                 idxs_primary[-1].append(idx)
                 idxs_default[-1].append(default[0])
         tsr_weights = torch.tensor(list_weights, dtype=torch.float32, device=self._device)
-        emb_primary = self.embedding(torch.tensor(idxs_primary, dtype=torch.int64, device=self._device))
-        emb_default = self.embedding(torch.tensor(idxs_default, dtype=torch.int64, device=self._device))
+        emb_primary = self.embedding(
+            torch.tensor(idxs_primary, dtype=torch.int64, device=self._device)
+        )
+        emb_default = self.embedding(
+            torch.tensor(idxs_default, dtype=torch.int64, device=self._device)
+        )
         return tsr_weights * emb_primary + (1 - tsr_weights) * emb_default

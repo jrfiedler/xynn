@@ -16,9 +16,7 @@ RaggedDefaultEmbedding
 
 """
 
-from math import ceil, sqrt, log
-from collections.abc import Iterable as IterableClass
-from typing import Any, Union, List, Dict, Iterable, Optional, Tuple
+from typing import Any, Union, List, Dict, Optional, Tuple, Iterable
 
 import numpy as np
 import torch

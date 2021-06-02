@@ -3,9 +3,9 @@ Base class for uniform embeddings, with fixed vector size across fields
 
 """
 
-from typing import Optional, Tuple
+from typing import Tuple
 
-from torch import nn, Tensor
+from torch import Tensor
 
 from ..common import EmbeddingBase
 

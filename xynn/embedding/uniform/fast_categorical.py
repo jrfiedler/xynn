@@ -15,13 +15,13 @@ FastDefaultEmbedding
 
 """
 
-from typing import Any, Union, List, Dict, Optional, Tuple
+from typing import Union, List, Optional
 
 import numpy as np
 import torch
 from torch import nn, Tensor
 
-from ..common import _isnan, FastBasicBase, FastDefaultBase
+from ..common import FastBasicBase, FastDefaultBase
 from .base import UniformBase
 
 
@@ -43,6 +43,7 @@ class FastBasicEmbedding(UniformBase, FastBasicBase):
         super().__init__()
         self.num_fields = 0
         self.output_size = 0
+        self.offsets: Optional[Tensor] = None
         self.embedding: Optional[nn.Embedding] = None
         self.embedding_size = embedding_size
         self._device = device

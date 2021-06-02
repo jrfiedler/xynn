@@ -17,7 +17,6 @@ import torch
 from torch import Tensor
 from torch import nn
 
-from ..common import _isnan
 from .base import UniformBase
 
 
