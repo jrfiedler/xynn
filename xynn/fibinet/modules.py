@@ -21,7 +21,9 @@ from ..mlp import MLP
 INIT_DOC = MODULE_INIT_DOC.format(
     textwrap.dedent(
         """\
-        num_numeric_fields : int
+        num_numeric_fields : int or "auto", optional
+            an integer must be specified when embedding_num is None;
+            default is \"auto\"
         fibi_reduction_ratio : int, optional
             used in the SENET layer; default is 3
         fibi_activation : subclass of torch.nn.Module, optional
@@ -329,11 +331,11 @@ class FiBiNet(BaseNN):
         self,
         task: str,
         output_size: int,
-        num_numeric_fields: int,
         embedding_num: Optional[EmbeddingBase],
         embedding_cat: Optional[EmbeddingBase],
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
+        num_numeric_fields: Union[int, str] = "auto",
         fibi_reduction_ratio: int = 3,
         fibi_activation: Type[nn.Module] = nn.LeakyReLU,
         fibi_senet_product: str = "sym-interaction",
@@ -365,6 +367,12 @@ class FiBiNet(BaseNN):
 
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
         num_fields, embed_size, tot_embed_size = embed_info
+
+        if not isinstance(num_numeric_fields, int):
+            if embedding_num is None:
+                msg = "when embedding_num is None, num_numeric_fields must be an integer"
+                raise TypeError(msg)
+            num_numeric_fields = embedding_num.num_fields
 
         self.senet = SENET(
             num_fields=num_fields,

@@ -197,6 +197,26 @@ def test_that_fibinet_uses_basenn_init():
     assert model._device == "cpu"
 
 
+def test_that_fibinet_requires_num_numeric_fields_when_embedding_num_is_None():
+    X = torch.randint(0, 10, (100, 10))
+    embedding_cat = BasicEmbedding(embedding_size=3).fit(X)
+    with pytest.raises(
+        TypeError,
+        match="when embedding_num is None, num_numeric_fields must be an integer",
+    ):
+        model = FiBiNet(
+            task="classification",
+            output_size=3,
+            embedding_num=None,
+            embedding_cat=embedding_cat,
+            mlp_activation=nn.ReLU,
+            mlp_hidden_sizes=(512, 128, 32),
+            mlp_use_bn=False,
+            mlp_leaky_gate=False,
+            mlp_use_skip=False,
+        )
+
+
 def test_that_fibinet_parameters_are_passed_to_submodules():
     X = torch.randint(0, 10, (100, 10))
     embedding_cat = BasicEmbedding(embedding_size=3).fit(X)
@@ -317,7 +337,6 @@ def test_that_fibinet_learns():
         output_size=1,
         embedding_num=LinearEmbedding(embedding_size=3).fit(X_num),
         embedding_cat=BasicEmbedding(embedding_size=3).fit(X_cat),
-        num_numeric_fields=10,
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
         mlp_leaky_gate=False,
@@ -347,7 +366,6 @@ def test_that_fibinet_learns_with_other_params():
         output_size=1,
         embedding_num=LinearEmbedding(embedding_size=3).fit(X_num),
         embedding_cat=BasicEmbedding(embedding_size=3).fit(X_cat),
-        num_numeric_fields=10,
         fibi_senet_product="hadamard",
         fibi_embed_product="hadamard",
         fibi_senet_skip=False,
