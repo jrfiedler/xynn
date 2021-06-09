@@ -117,7 +117,7 @@ def _val_epoch(
         file=sys.stdout,
         total=len(loader),
     )
-    pbar.set_description("Eval")
+    pbar.set_description(f"Eval {model.num_epochs}")
     ypairs = []
     for batch_idx, batch in pbar:
         ypair = model.validation_step(batch, batch_idx)
@@ -192,7 +192,7 @@ def _epoch(
         file=sys.stdout,
         total=len(train_data),
     )
-    pbar.set_description("Train")
+    pbar.set_description(f"Train {model.num_epochs}")
     for batch_idx, batch in pbar:
         loss = _train_batch(model, batch, batch_idx, max_grad_norm, scheduler_step)
         pbar.set_postfix({"Loss": f"{loss:#.2g}"})
