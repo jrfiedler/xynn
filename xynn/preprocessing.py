@@ -15,9 +15,18 @@ UTA = Union[Tensor, np.ndarray]
 
 
 def _ismissing(column: UTA) -> UTA:
+    # tensor
     if isinstance(column, Tensor):
-        return torch.isnan(column)
-    return np.isnan(column)
+        if column.dtype in (torch.float, torch.double, torch.half, torch.bfloat16):
+            return torch.isnan(column)
+        return torch.full(column.shape, False, dtype=torch.bool)
+
+    # ndarray
+    if np.issubdtype(column.dtype, np.floating):
+        return np.isnan(column)
+    elif column.dtype == np.dtype("O"):
+        return np.array([isinstance(x, float) and np.isnan(x) for x in column])
+    return np.full(column.shape, False, dtype=np.bool)
 
 
 def _columns(X: UTA) -> Iterator[UTA]:

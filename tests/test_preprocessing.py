@@ -19,6 +19,23 @@ def test__ismissing_numpy():
     assert np.all(missing == expected)
 
 
+def test__ismissing_numpy_other_dtypes():
+    data = np.array([0, 1, np.nan, 3, 4, 5, np.nan, np.nan], dtype=np.float16)
+    missing = _ismissing(data)
+    expected = np.array([False, False, True, False, False, False, True, True])
+    assert np.all(missing == expected)
+
+    data = np.array([0, 1, np.nan, 3, 4, 5, np.nan, np.nan], dtype=np.object)
+    missing = _ismissing(data)
+    expected = np.array([False, False, True, False, False, False, True, True])
+    assert np.all(missing == expected)
+
+    data = np.array([0, 1, 2, 3, 4, 5, 6, 7], dtype=np.int)
+    missing = _ismissing(data)
+    expected = np.array([False, False, False, False, False, False, False, False])
+    assert np.all(missing == expected)
+
+
 def test__ismissing_tensor():
     data = torch.tensor([0, 1, np.nan, 3, 4, 5, np.nan, np.nan])
     missing = _ismissing(data)
@@ -26,6 +43,18 @@ def test__ismissing_tensor():
     assert torch.all(missing == expected).item()
 
     data = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7])
+    missing = _ismissing(data)
+    expected = torch.tensor([False, False, False, False, False, False, False, False])
+    assert torch.all(missing == expected).item()
+
+
+def test__ismissing_tensor_other_dtypes():
+    data = torch.tensor([0, 1, np.nan, 3, 4, 5, np.nan, np.nan], dtype=torch.float16)
+    missing = _ismissing(data)
+    expected = torch.tensor([False, False, True, False, False, False, True, True])
+    assert torch.all(missing == expected).item()
+
+    data = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7], dtype=torch.int)
     missing = _ismissing(data)
     expected = torch.tensor([False, False, False, False, False, False, False, False])
     assert torch.all(missing == expected).item()
