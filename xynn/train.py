@@ -10,6 +10,7 @@ import datetime
 from collections import defaultdict
 from typing import Tuple, Callable, Optional, Iterable, Union, Dict, List
 
+import numpy as np
 import torch
 from torch import nn, Tensor
 from torch.nn.utils import clip_grad_norm_
@@ -210,13 +211,16 @@ def _epoch(
     return log_info
 
 
-def _evaluate(model, metric, patience, mode, best, count, epoch_log_info, param_path):
-    if (patience == float("inf") and not param_path) or not epoch_log_info:
+def _evaluate(model, metric, patience, mode, window, best, count, log_info, param_path):
+    if (patience == float("inf") and not param_path) or not log_info:
         # either nothing requested or don't have the necessary information
         return best, count
-    if metric not in epoch_log_info[0]:
+    if len(log_info) < window:
+        # not enough values to calculate best yet
+        return best, count
+    if metric not in log_info[0]:
         raise IndexError(f"cannot find early_stopping_metric '{metric}' in validation info")
-    value = epoch_log_info[0][metric]
+    value = np.mean([info[metric] for info in log_info[-window:]])
     if (mode == "min" and value < best) or (mode == "max" and value > best):
         best = value
         count = 0
@@ -238,6 +242,7 @@ def train(
     early_stopping_metric: str = "val_loss",
     early_stopping_patience: Union[int, float] = float("inf"),
     early_stopping_mode: str = "min",
+    early_stopping_window: int = 1,
     param_path: Optional[str] = None,
     verbose: bool = False,
 ):
@@ -271,11 +276,18 @@ def train(
         default is float("inf") (no early stopping)
     early_stopping_mode : {"min", "max"}, optional
         use "min" if smaller values are better; default is "min"
+    early_stopping_window : int, optional
+        number of consecutive epochs to average to determine best;
+        default is 1
     param_path : str or None, optional
         specify this to have the best parameters reloaded at end of training;
         default is None
     verbose : boolean, optional
         default is False
+
+    Return
+    ------
+    list of dictionaries, one dictionary for each epoch
 
     """
 
@@ -300,6 +312,11 @@ def train(
             raise ValueError(
                 "early_stopping_mode needs to be 'min' or 'max'; "
                 f"got {repr(early_stopping_mode)}"
+            )
+        if not isinstance(early_stopping_window, int) or early_stopping_window <= 0:
+            raise ValueError(
+                "early_stopping_window needs to be a positive integer; "
+                f"got {repr(early_stopping_window)}"
             )
 
     # check if model's sheduler needs to monitor a validation metric,
@@ -346,16 +363,18 @@ def train(
             metric=early_stopping_metric,
             patience=early_stopping_patience,
             mode=early_stopping_mode,
+            window=early_stopping_window,
             best=es_best,
             count=es_count,
-            epoch_log_info=epoch_log_info,
+            log_info=log_info,
             param_path=param_path,
         )
         if es_count >= early_stopping_patience + 1:
             if verbose:
+                best_epoch = log_info[-1]['epoch'] - es_count - early_stopping_window // 2
                 print(
                     "Stopping early. "
-                    f"Best epoch: {log_info[-1]['epoch'] - es_count}. "
+                    f"Best epoch: {best_epoch}. "
                     f"Best {early_stopping_metric}: {es_best:11.6g}"
                 )
             break

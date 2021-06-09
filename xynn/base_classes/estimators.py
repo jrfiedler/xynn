@@ -304,6 +304,7 @@ class BaseEstimator(metaclass=ABCMeta):
         early_stopping_metric: str = "val_loss",
         early_stopping_patience: Union[int, float] = float("inf"),
         early_stopping_mode: str = "min",
+        early_stopping_window: int = 1,
         shuffle: bool = True,
         log_path: Optional[str] = None,
         param_path: Optional[str] = None,
@@ -348,6 +349,9 @@ class BaseEstimator(metaclass=ABCMeta):
             default is float("inf") (no early stopping)
         early_stopping_mode : {"min", "max"}, optional
             use "min" if smaller values are better; default is "min"
+        early_stopping_window : int, optional
+            number of consecutive epochs to average to determine best;
+            default is 1
         shuffle : boolean, optional
             default is True
         log_path : str or None, optional
@@ -399,6 +403,7 @@ class BaseEstimator(metaclass=ABCMeta):
             early_stopping_metric=early_stopping_metric,
             early_stopping_patience=early_stopping_patience,
             early_stopping_mode=early_stopping_mode,
+            early_stopping_window=early_stopping_window,
             param_path=param_path,
             verbose=verbose,
         )

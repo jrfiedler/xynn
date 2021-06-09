@@ -102,9 +102,10 @@ def test_that__evaluate_raises_error_with_missing_metric_value():
             metric="rmse",
             patience=5,
             mode="min",
+            window=1,
             best=0.1,
             count=100,
-            epoch_log_info=[{"mean_absolute_error": 0.05}],
+            log_info=[{"mean_absolute_error": 0.05}],
             param_path=None,
         )
 
@@ -115,9 +116,10 @@ def test_that__evaluate_returns_early_without_info_and_either_patience_or_param_
         metric="rmse",
         patience=5,
         mode="min",
+        window=1,
         best=0.1,
         count=100,
-        epoch_log_info=[],
+        log_info=[],
         param_path="path.pkl",
     )
     assert best == 0.1
@@ -128,13 +130,30 @@ def test_that__evaluate_returns_early_without_info_and_either_patience_or_param_
         metric="rmse",
         patience=float("inf"),
         mode="min",
+        window=1,
         best=0.1,
         count=100,
-        epoch_log_info=[{"rmse": 0.05}],
+        log_info=[{"rmse": 0.05}],
         param_path=None,
     )
     assert best == 0.1
     assert count == 100
+
+
+def test_that__evaluate_returns_early_with_too_few_epochs():
+    best, count = _evaluate(
+        model=None,
+        metric="rmse",
+        patience=5,
+        mode="min",
+        window=5,
+        best=float("inf"),
+        count=0,
+        log_info=[{"rmse": 0.55}, {"rmse": 0.45}, {"rmse": 0.25}, {"rmse": 0.05}],
+        param_path="path.pkl",
+    )
+    assert best == float("inf")
+    assert count == 0
 
 
 def test__evaluate_and_saved_state_dict_when_param_path_given():
@@ -149,9 +168,16 @@ def test__evaluate_and_saved_state_dict_when_param_path_given():
         metric="rmse",
         patience=float("inf"),
         mode="min",
+        window=1,
         best=0.1,
         count=100,
-        epoch_log_info=[{"epoch": 110, "rmse": 0.05}],
+        log_info=[
+            {"epoch": 0, "rmse": 0.15},
+            {"epoch": 1, "rmse": 0.15},
+            {"epoch": 2, "rmse": 0.10},
+            {"epoch": 3, "rmse": 0.12},
+            {"epoch": 4, "rmse": 0.05},
+        ],
         param_path=param_file.name,
     )
     assert best == 0.05
@@ -171,12 +197,56 @@ def test__evaluate_with_better_min_value():
         metric="rmse",
         patience=5,
         mode="min",
+        window=1,
         best=0.1,
         count=2,
-        epoch_log_info=[{"rmse": 0.0625}],
+        log_info=[
+            {"rmse": 0.3688},
+            {"rmse": 0.1000},
+            {"rmse": 0.1654},
+            {"rmse": 0.1212},
+            {"rmse": 0.0625},
+        ],
         param_path=None,
     )
     assert best == 0.0625
+    assert count == 0
+
+
+def test__evaluate_with_better_min_value_and_window():
+    best, count = _evaluate(
+        model=None,
+        metric="rmse",
+        patience=5,
+        mode="min",
+        window=5,
+        best=0.5984,
+        count=1,
+        log_info=[
+            {"rmse": 7.160},
+            {"rmse": 6.115},
+            {"rmse": 5.688},
+            {"rmse": 4.977},
+            {"rmse": 4.240},
+            {"rmse": 3.633},
+            {"rmse": 2.511},
+            {"rmse": 2.137},
+            {"rmse": 1.944},
+            {"rmse": 1.683},
+            {"rmse": 2.051},
+            {"rmse": 1.713},
+            {"rmse": 1.701},
+            {"rmse": 0.607},
+            {"rmse": 1.114},
+            {"rmse": 0.337},
+            {"rmse": 0.461},
+            {"rmse": 0.473},
+            {"rmse": 0.669},
+            {"rmse": 0.359},
+        ],
+        param_path=None,
+    )
+    assert np.isclose(best, 0.4598)
     assert count == 0
 
 
@@ -186,12 +256,55 @@ def test__evaluate_with_better_max_value():
         metric="accuracy",
         patience=5,
         mode="max",
+        window=1,
         best=0.1,
         count=2,
-        epoch_log_info=[{"accuracy": 0.5}],
+        log_info=[
+            {"accuracy": 0.01},
+            {"accuracy": 0.01},
+            {"accuracy": 0.02},
+            {"accuracy": 0.09},
+            {"accuracy": 0.10},
+            {"accuracy": 0.50},
+        ],
         param_path=None,
     )
     assert best == 0.5
+    assert count == 0
+
+
+def test__evaluate_with_better_max_value_and_window():
+    best, count = _evaluate(
+        model=None,
+        metric="accuracy",
+        patience=5,
+        mode="max",
+        window=3,
+        best=79.36266667,
+        count=0,
+        log_info=[
+            {"accuracy": 72.84},
+            {"accuracy": 73.885},
+            {"accuracy": 74.312},
+            {"accuracy": 75.023},
+            {"accuracy": 75.76},
+            {"accuracy": 76.367},
+            {"accuracy": 77.489},
+            {"accuracy": 77.863},
+            {"accuracy": 78.056},
+            {"accuracy": 78.317},
+            {"accuracy": 77.949},
+            {"accuracy": 78.287},
+            {"accuracy": 78.299},
+            {"accuracy": 79.393},
+            {"accuracy": 78.886},
+            {"accuracy": 79.663},
+            {"accuracy": 79.539},
+            {"accuracy": 79.527},
+        ],
+        param_path=None,
+    )
+    assert np.isclose(best, 79.57633333)
     assert count == 0
 
 
@@ -201,9 +314,16 @@ def test__evaluate_with_worse_values():
         metric="accuracy",
         patience=5,
         mode="max",
+        window=1,
         best=0.25,
         count=2,
-        epoch_log_info=[{"accuracy": 0.125}],
+        log_info=[
+            {"accuracy": 0.125},
+            {"accuracy": 0.250},
+            {"accuracy": 0.125},
+            {"accuracy": 0.200},
+            {"accuracy": 0.125},
+        ],
         param_path=None,
     )
     assert best == 0.25
@@ -214,13 +334,94 @@ def test__evaluate_with_worse_values():
         metric="rmse",
         patience=5,
         mode="min",
+        window=1,
         best=0.125,
         count=2,
-        epoch_log_info=[{"rmse": 0.25}],
+        log_info=[
+            {"rmse": 0.275},
+            {"rmse": 0.250},
+            {"rmse": 0.225},
+            {"rmse": 0.125},
+            {"rmse": 0.165},
+            {"rmse": 0.225},
+            {"rmse": 0.250},
+        ],
         param_path=None,
     )
     assert best == 0.125
     assert count == 3
+
+
+def test__evaluate_with_worse_values_and_window():
+    best, count = _evaluate(
+        model=None,
+        metric="accuracy",
+        patience=5,
+        mode="max",
+        window=3,
+        best=79.57633333,
+        count=1,
+        log_info=[
+            {"accuracy": 72.84},
+            {"accuracy": 73.885},
+            {"accuracy": 74.312},
+            {"accuracy": 75.023},
+            {"accuracy": 75.76},
+            {"accuracy": 76.367},
+            {"accuracy": 77.489},
+            {"accuracy": 77.863},
+            {"accuracy": 78.056},
+            {"accuracy": 78.317},
+            {"accuracy": 77.949},
+            {"accuracy": 78.287},
+            {"accuracy": 78.299},
+            {"accuracy": 79.393},
+            {"accuracy": 78.886},
+            {"accuracy": 79.663},
+            {"accuracy": 79.539},
+            {"accuracy": 79.527},
+            {"accuracy": 79.331},
+            {"accuracy": 79.641},
+        ],
+        param_path=None,
+    )
+    assert best == 79.57633333
+    assert count == 2
+
+    best, count = _evaluate(
+        model=None,
+        metric="rmse",
+        patience=5,
+        mode="min",
+        window=3,
+        best=0.42366667,
+        count=1,
+        log_info=[
+            {"rmse": 7.16},
+            {"rmse": 6.115},
+            {"rmse": 5.688},
+            {"rmse": 4.977},
+            {"rmse": 4.24},
+            {"rmse": 3.633},
+            {"rmse": 2.511},
+            {"rmse": 2.137},
+            {"rmse": 1.944},
+            {"rmse": 1.683},
+            {"rmse": 2.051},
+            {"rmse": 1.713},
+            {"rmse": 1.701},
+            {"rmse": 0.607},
+            {"rmse": 1.114},
+            {"rmse": 0.337},
+            {"rmse": 0.461},
+            {"rmse": 0.473},
+            {"rmse": 0.669},
+            {"rmse": 0.359},
+        ],
+        param_path=None,
+    )
+    assert best == 0.42366667
+    assert count == 2
 
 
 def test_train_early_stopping_patience_requires_val_data():
@@ -269,6 +470,32 @@ def test_train_raises_error_for_bad_early_stopping_mode():
             num_epochs=500,
             early_stopping_patience=3,
             early_stopping_mode="best?",
+        )
+
+
+def test_train_early_stopping_window_must_be_positive_integer():
+    model, train_dl, valid_dl = simple_train_inputs()
+    with pytest.raises(
+        ValueError, match="early_stopping_window needs to be a positive integer; got 0"
+    ):
+        train(
+            model,
+            train_dl,
+            valid_dl,
+            num_epochs=500,
+            early_stopping_patience=3,
+            early_stopping_window=0,
+        )
+    with pytest.raises(
+        ValueError, match="early_stopping_window needs to be a positive integer; got 4.5"
+    ):
+        train(
+            model,
+            train_dl,
+            valid_dl,
+            num_epochs=500,
+            early_stopping_patience=3,
+            early_stopping_window=4.5,
         )
 
 
