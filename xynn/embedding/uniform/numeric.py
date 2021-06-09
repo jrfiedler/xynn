@@ -132,17 +132,18 @@ class DenseEmbedding(UniformBase):
         self.output_size = 0
         self.embedding_w: Optional[nn.Parameter] = None
         self.embedding_b: Optional[nn.Parameter] = None
-        self.embedding_size = embedding_size
+        self.dense_out_size = embedding_size
+        self.embedding_size = embedding_size[-1]
         self.activation = activation().to(device=device)
         self._device = device
         self.to(device)
         self._isfit = False
 
     def __repr__(self):
-        embed_size = self.embedding_size
+        dense_size = self.dense_out_size
         activation = self.activation.__class__.__name__
         device = repr(self._device)
-        return f"DenseEmbedding({embed_size}, {activation}, {device})"
+        return f"DenseEmbedding({dense_size}, {activation}, {device})"
 
     def from_summary(self, num_fields: int):
         """
@@ -158,12 +159,12 @@ class DenseEmbedding(UniformBase):
 
         """
         self.num_fields = num_fields
-        self.output_size = reduce(operator.mul, self.embedding_size, 1)
+        self.output_size = reduce(operator.mul, self.dense_out_size, 1)
         self.embedding_w = nn.Parameter(
-            torch.zeros((num_fields, *self.embedding_size))
+            torch.zeros((num_fields, *self.dense_out_size))
         ).to(device=self._device)
         self.embedding_b = nn.Parameter(
-            torch.zeros(self.embedding_size)
+            torch.zeros(self.dense_out_size)
         ).to(device=self._device)
         nn.init.xavier_uniform_(self.embedding_w)
 
@@ -196,4 +197,4 @@ class DenseEmbedding(UniformBase):
             raise RuntimeError("need to call `fit` or `from_summary` first")
         embedded = self.embedding_w.T.matmul(X.T.to(dtype=torch.float)).T + self.embedding_b
         embedded = self.activation(embedded.reshape((X.shape[0], -1)))
-        return embedded.reshape((X.shape[0], *self.embedding_size))
+        return embedded.reshape((X.shape[0], *self.dense_out_size))

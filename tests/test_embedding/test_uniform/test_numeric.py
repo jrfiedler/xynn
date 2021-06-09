@@ -157,7 +157,7 @@ def test_denseembedding_with_pandas_example():
 
 def test_denseembedding_with_tensor_example():
     data_num = torch.from_numpy(example_data()[["num_a", "num_b"]].values)
-    embedding = DenseEmbedding(embedding_size=(3,), activation=nn.ReLU).fit(data_num)
+    embedding = DenseEmbedding(embedding_size=(2, 3), activation=nn.ReLU).fit(data_num)
     data_test = pd.DataFrame(
         {
             "num_a": [1, 0, 0.5, 0.0, -1],
@@ -167,9 +167,9 @@ def test_denseembedding_with_tensor_example():
     emb_w = embedding.embedding_w
     emb_b = embedding.embedding_b
     output = embedding(torch.from_numpy(data_test.values)).to(dtype=emb_w.dtype)
-    assert emb_w.shape == (2, 1, 3)
-    assert emb_b.shape == (1, 3)
-    assert output.shape == (5, 1, 3)
+    assert emb_w.shape == (2, 2, 3)
+    assert emb_b.shape == (2, 3)
+    assert output.shape == (5, 2, 3)
     ## test returned vectors vs weight matrix
     identity_relu = emb_b + torch.where(
         emb_w > 0, emb_w, torch.zeros(emb_w.shape, dtype=emb_w.dtype)
