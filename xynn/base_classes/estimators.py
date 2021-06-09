@@ -308,6 +308,7 @@ class BaseEstimator(metaclass=ABCMeta):
         shuffle: bool = True,
         log_path: Optional[str] = None,
         param_path: Optional[str] = None,
+        callback: Optional[Callable] = None,
         verbose: bool = False,
     ):
         """
@@ -359,6 +360,9 @@ class BaseEstimator(metaclass=ABCMeta):
         param_path : str or None, optional
             specify this to have the best parameters reloaded at end of training;
             default is None
+        callback : callable or None, optional
+            function to call after each epoch; the function will be passed a list
+            of dictionaries, one dictionary for each epoch; default is None
         verbose : boolean, optional
             default is False
 
@@ -405,6 +409,7 @@ class BaseEstimator(metaclass=ABCMeta):
             early_stopping_mode=early_stopping_mode,
             early_stopping_window=early_stopping_window,
             param_path=param_path,
+            callback=callback,
             verbose=verbose,
         )
 

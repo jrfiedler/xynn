@@ -544,6 +544,22 @@ def test_train_on_simple_example():
     assert log_info[-1]["val_loss"] < log_info[0]["val_loss"]
 
 
+def test_train_with_callback(capsys):
+    def callback(log_info):
+        print(log_info[-1])
+
+    model, train_dl, valid_dl = simple_train_inputs()
+    log_info = train(model, train_dl, valid_dl, callback=callback)
+
+    captured = capsys.readouterr()
+
+    for i, line in enumerate(captured.out.split("\n")):
+        if not line:
+            break
+        assert f"{{'epoch': {i}" in line
+    assert i == 5
+
+
 def test_train_on_simple_example_with_saved_parameters():
     model, train_dl, valid_dl = simple_train_inputs()
     state_dict_orig = {

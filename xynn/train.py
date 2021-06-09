@@ -244,6 +244,7 @@ def train(
     early_stopping_mode: str = "min",
     early_stopping_window: int = 1,
     param_path: Optional[str] = None,
+    callback: Optional[Callable] = None,
     verbose: bool = False,
 ):
     """
@@ -282,6 +283,9 @@ def train(
     param_path : str or None, optional
         specify this to have the best parameters reloaded at end of training;
         default is None
+    callback : callable or None, optional
+        function to call after each epoch; the function will be passed a list
+        of dictionaries, one dictionary for each epoch; default is None
     verbose : boolean, optional
         default is False
 
@@ -369,6 +373,8 @@ def train(
             log_info=log_info,
             param_path=param_path,
         )
+        if callback is not None:
+            callback(log_info)
         if es_count >= early_stopping_patience + 1:
             if verbose:
                 best_epoch = log_info[-1]['epoch'] - es_count - early_stopping_window // 2
