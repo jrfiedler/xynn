@@ -19,7 +19,7 @@ INIT_DOC = ESTIMATOR_INIT_DOC.format(
         """\
         attn_embedding_size : int, optional
             default is 8
-        attn_num_layer : int, optional
+        attn_num_layers : int, optional
             default is 3
         attn_num_head : int, optional
             default is 2
@@ -51,8 +51,8 @@ class AutoIntClassifier(BaseClassifier):
         embedding_l1_reg: float=0.0,
         embedding_l2_reg: float=0.0,
         attn_embedding_size: int = 8,
-        attn_num_layer: int = 3,
-        attn_num_head: int = 2,
+        attn_num_layers: int = 3,
+        attn_num_heads: int = 2,
         attn_activation: Optional[Type[nn.Module]] = None,
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
@@ -78,8 +78,8 @@ class AutoIntClassifier(BaseClassifier):
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             attn_embedding_size=attn_embedding_size,
-            attn_num_layer=attn_num_layer,
-            attn_num_head=attn_num_head,
+            attn_num_layers=attn_num_layers,
+            attn_num_heads=attn_num_heads,
             attn_activation=attn_activation,
             attn_use_residual=attn_use_residual,
             attn_dropout=attn_dropout,
@@ -120,8 +120,8 @@ class AutoIntRegressor(BaseRegressor):
         embedding_l1_reg: float=0.0,
         embedding_l2_reg: float=0.0,
         attn_embedding_size: int = 8,
-        attn_num_layer: int = 3,
-        attn_num_head: int = 2,
+        attn_num_layers: int = 3,
+        attn_num_heads: int = 2,
         attn_activation: Optional[Type[nn.Module]] = None,
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
@@ -147,8 +147,8 @@ class AutoIntRegressor(BaseRegressor):
             embedding_l1_reg=embedding_l1_reg,
             embedding_l2_reg=embedding_l2_reg,
             attn_embedding_size=attn_embedding_size,
-            attn_num_layer=attn_num_layer,
-            attn_num_head=attn_num_head,
+            attn_num_layers=attn_num_layers,
+            attn_num_heads=attn_num_heads,
             attn_activation=attn_activation,
             attn_use_residual=attn_use_residual,
             attn_dropout=attn_dropout,

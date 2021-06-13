@@ -15,7 +15,7 @@ from torch.nn import functional as F
 from ..embedding import check_uniform_embeddings
 from ..embedding import EmbeddingBase
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
-from ..mlp import MLP, LeakyGate
+from ..mlp import MLP
 
 
 INIT_DOC = MODULE_INIT_DOC.format(
@@ -23,9 +23,9 @@ INIT_DOC = MODULE_INIT_DOC.format(
         """\
         attn_embedding_size : int, optional
             default is 8
-        attn_num_layer : int, optional
+        attn_num_layers : int, optional
             default is 3
-        attn_num_head : int, optional
+        attn_num_heads : int, optional
             default is 2
         attn_activation : subclass of torch.nn.Module or None, optional
             applied to the transformation tensors; default is None
@@ -58,7 +58,7 @@ class AttnInteractionLayer(nn.Module):
         self,
         field_input_size: int,
         field_output_size: int = 8,
-        num_head: int = 2,
+        num_heads: int = 2,
         activation: Optional[Type[nn.Module]] = None,
         use_residual: bool = True,
         dropout: float = 0.1,
@@ -72,7 +72,7 @@ class AttnInteractionLayer(nn.Module):
             original embedding size for each field
         field_output_size : int, optional
             embedding size after transformation; default is 8
-        num_head : int, optional
+        num_heads : int, optional
             number of attention heads; default is 2
         activation : subclass of torch.nn.Module or None, optional
             applied to the W tensors; default is None
@@ -90,12 +90,12 @@ class AttnInteractionLayer(nn.Module):
 
         self.use_residual = use_residual
 
-        self.W_q = _initialized_tensor(field_input_size, field_output_size, num_head)
-        self.W_k = _initialized_tensor(field_input_size, field_output_size, num_head)
-        self.W_v = _initialized_tensor(field_input_size, field_output_size, num_head)
+        self.W_q = _initialized_tensor(field_input_size, field_output_size, num_heads)
+        self.W_k = _initialized_tensor(field_input_size, field_output_size, num_heads)
+        self.W_v = _initialized_tensor(field_input_size, field_output_size, num_heads)
 
         if use_residual:
-            self.W_r = _initialized_tensor(field_input_size, field_output_size * num_head)
+            self.W_r = _initialized_tensor(field_input_size, field_output_size * num_heads)
         else:
             self.W_r = None
 
@@ -110,7 +110,7 @@ class AttnInteractionLayer(nn.Module):
             self.dropout = nn.Identity()
 
         if normalize:
-            self.layer_norm = nn.LayerNorm(field_output_size * num_head)
+            self.layer_norm = nn.LayerNorm(field_output_size * num_heads)
         else:
             self.layer_norm = nn.Identity()
 
@@ -175,7 +175,7 @@ class AttnInteractionBlock(nn.Module):
         field_input_size: int,
         field_output_size: int = 8,
         num_layers: int = 3,
-        num_head: int = 2,
+        num_heads: int = 2,
         activation: Optional[Type[nn.Module]] = None,
         use_residual: bool = True,
         dropout: float = 0.1,
@@ -191,7 +191,7 @@ class AttnInteractionBlock(nn.Module):
             embedding size after transformation; default is 8
         num_layers : int, optional
             number of attention layers; default is 3
-        num_head : int, optional
+        num_heads : int, optional
             number of attention heads per layer; default is 2
         activation : subclass of torch.nn.Module or None, optional
             applied to the W tensors; default is None
@@ -213,7 +213,7 @@ class AttnInteractionBlock(nn.Module):
                 AttnInteractionLayer(
                     field_input_size,
                     field_output_size,
-                    num_head,
+                    num_heads,
                     activation,
                     use_residual,
                     dropout,
@@ -221,7 +221,7 @@ class AttnInteractionBlock(nn.Module):
                     device,
                 )
             )
-            field_input_size = field_output_size * num_head
+            field_input_size = field_output_size * num_heads
 
         self.layers = nn.Sequential(*layers)
         self.to(device)
@@ -262,8 +262,8 @@ class AutoInt(BaseNN):
         embedding_l1_reg: float = 0.0,
         embedding_l2_reg: float = 0.0,
         attn_embedding_size: int = 8,
-        attn_num_layer: int = 3,
-        attn_num_head: int = 2,
+        attn_num_layers: int = 3,
+        attn_num_heads: int = 2,
         attn_activation: Optional[Type[nn.Module]] = None,
         attn_use_residual: bool = True,
         attn_dropout: float = 0.1,
@@ -300,8 +300,8 @@ class AutoInt(BaseNN):
         self.attn_interact = AttnInteractionBlock(
             field_input_size=embed_info.embedding_size,
             field_output_size=attn_embedding_size,
-            num_layers=attn_num_layer,
-            num_head=attn_num_head,
+            num_layers=attn_num_layers,
+            num_heads=attn_num_heads,
             activation=attn_activation,
             use_residual=attn_use_residual,
             dropout=attn_dropout,
@@ -311,7 +311,7 @@ class AutoInt(BaseNN):
 
         self.attn_final = MLP(
             task=task,
-            input_size=embed_info.num_fields * attn_embedding_size * attn_num_head,
+            input_size=embed_info.num_fields * attn_embedding_size * attn_num_heads,
             hidden_sizes=(mlp_hidden_sizes if mlp_hidden_sizes and attn_use_mlp else []),
             output_size=output_size,
             activation=mlp_activation,
@@ -322,7 +322,6 @@ class AutoInt(BaseNN):
             use_skip=mlp_use_skip,
             device=device,
         )
-
 
         if mlp_hidden_sizes:
             self.mlp = MLP(
@@ -381,11 +380,11 @@ class AutoInt(BaseNN):
         w2 : sum of squared MLP weights
 
         """
-        w1, w2 = self.mlp.weight_sum()
-        if isinstance(self.attn_final, MLP):
-            attn_final_w1, attn_final_w2 = self.attn_final.weight_sum()
-            w1 += attn_final_w1
-            w2 += attn_final_w2
+        w1, w2 = self.attn_mlp.weight_sum()
+        if self.mlp is not None:
+            side_w1, side_w2 = self.mlp.weight_sum()
+            w1 += side_w1
+            w2 += side_w2
         return w1, w2
 
     def forward(self, X_num: Tensor, X_cat: Tensor) -> Tensor:
