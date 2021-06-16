@@ -273,6 +273,7 @@ class AutoInt(BaseNN):
         mlp_activation: Type[nn.Module] = nn.LeakyReLU,
         mlp_use_bn: bool = True,
         mlp_bn_momentum: float = 0.1,
+        mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
         mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
@@ -318,6 +319,7 @@ class AutoInt(BaseNN):
             dropout=mlp_dropout,
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
+            ghost_batch=mlp_ghost_batch,
             leaky_gate=mlp_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
@@ -333,6 +335,7 @@ class AutoInt(BaseNN):
                 dropout=mlp_dropout,
                 use_bn=mlp_use_bn,
                 bn_momentum=mlp_bn_momentum,
+                ghost_batch=mlp_ghost_batch,
                 leaky_gate=mlp_leaky_gate,
                 use_skip=mlp_use_skip,
                 device=device,
@@ -380,7 +383,7 @@ class AutoInt(BaseNN):
         w2 : sum of squared MLP weights
 
         """
-        w1, w2 = self.attn_mlp.weight_sum()
+        w1, w2 = self.attn_final.weight_sum()
         if self.mlp is not None:
             side_w1, side_w2 = self.mlp.weight_sum()
             w1 += side_w1

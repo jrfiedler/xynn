@@ -10,7 +10,7 @@ from xynn.base_classes.estimators import _set_seed
 from xynn.base_classes.modules import BaseNN
 from xynn.pnn.modules import InnerProduct, OuterProduct, PNNCore, PNN, PNNPlus
 from xynn.embedding import LinearEmbedding, BasicEmbedding
-from xynn.mlp import LeakyGate
+from xynn.mlp import LeakyGate, GhostBatchNorm
 
 from ..common import simple_train_inputs, simple_model_train_loop
 
@@ -191,6 +191,40 @@ def test_that_pnnplus_parameters_are_passed_to_submodules():
     assert model.pnn.product_type == "both"
     assert isinstance(model.pnn.inner, InnerProduct)
     assert isinstance(model.pnn.outer, OuterProduct)
+
+
+def test_pnnplus_parameters_with_ghost_batch():
+    X = torch.randint(0, 10, (100, 10))
+    embedding_num = LinearEmbedding(embedding_size=3).fit(X)
+    embedding_cat = BasicEmbedding(embedding_size=3).fit(X)
+    model = PNNPlus(
+        task="classification",
+        output_size=3,
+        embedding_num=embedding_num,
+        embedding_cat=embedding_cat,
+        pnn_product_type="both",
+        mlp_hidden_sizes=(512, 64),
+        mlp_use_bn=True,
+        mlp_ghost_batch=32,
+        mlp_leaky_gate=True,
+        mlp_use_skip=False,
+    )
+
+    expected_classes = [
+        LeakyGate,
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+    ]
+    mlp = model.pnn.mlp
+    assert len(mlp.main_layers) == len(expected_classes)
+    for layer, expected_class in zip(mlp.main_layers, expected_classes):
+        assert isinstance(layer, expected_class)
+    assert mlp.skip_layers is None
 
 
 def test_that_pnn_diagram_exists_and_prints_something(capsys):

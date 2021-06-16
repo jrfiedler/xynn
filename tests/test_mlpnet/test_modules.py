@@ -1,6 +1,7 @@
 
 import random
 
+import pytest
 import torch
 from torch import nn
 import numpy as np
@@ -9,9 +10,22 @@ from xynn.base_classes.estimators import _set_seed
 from xynn.base_classes.modules import BaseNN
 from xynn.mlpnet.modules import MLPNet
 from xynn.embedding import LinearEmbedding
-from xynn.mlp import LeakyGate
+from xynn.mlp import LeakyGate, GhostBatchNorm
 
 from ..common import simple_train_inputs, simple_model_train_loop, SimpleEmbedding
+
+
+def test_that_mlpnet_raises_error_without_numeric_field_info():
+    with pytest.raises(
+        TypeError,
+        match="when embedding_num is None, num_numeric_fields must be an integer"
+    ):
+        MLPNet(
+            task="classification",
+            output_size=3,
+            embedding_num=None,
+            embedding_cat=None,
+        )
 
 
 def test_that_mlpnet_subclasses_basenn():
@@ -110,6 +124,37 @@ def test_that_more_parameters_are_passed_to_mlp_module():
     assert len(model.mlp.skip_layers) == len(expected_classes)
     for layer, expected_class in zip(model.mlp.skip_layers, expected_classes):
         assert isinstance(layer, expected_class)
+
+
+def test_mlp_module_layers_with_ghost_batch():
+    embedding_num = SimpleEmbedding(20, 3)
+    model = MLPNet(
+        task="classification",
+        output_size=3,
+        embedding_num=embedding_num,
+        embedding_cat=None,
+        num_numeric_fields=20,
+        mlp_hidden_sizes=(512, 64),
+        mlp_use_bn=True,
+        mlp_ghost_batch=16,
+        mlp_leaky_gate=False,
+        mlp_use_skip=True,
+    )
+
+    expected_classes = [
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+    ]
+    assert len(model.mlp.main_layers) == len(expected_classes)
+    for layer, expected_class in zip(model.mlp.main_layers, expected_classes):
+        assert isinstance(layer, expected_class)
+
+    assert isinstance(model.mlp.skip_layers, nn.Linear)
 
 
 def test_that_diagram_exists_and_prints_something(capsys):

@@ -11,7 +11,7 @@ from xynn.base_classes.modules import BaseNN
 from xynn.fibinet.modules import SENET, Bilinear, Hadamard
 from xynn.fibinet import FiBiNet
 from xynn.embedding import LinearEmbedding, BasicEmbedding
-from xynn.mlp import LeakyGate
+from xynn.mlp import LeakyGate, GhostBatchNorm
 
 from ..common import simple_train_inputs, simple_model_train_loop
 
@@ -265,22 +265,23 @@ def test_that_fibinet_parameters_are_passed_to_submodules_other_params():
         num_numeric_fields=0,
         fibi_embed_product="shared",
         fibi_senet_skip=False,
+        mlp_ghost_batch=64,
         mlp_use_skip=False,
     )
 
     expected_classes = [
         LeakyGate,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
     ]

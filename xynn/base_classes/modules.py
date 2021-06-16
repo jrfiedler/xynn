@@ -49,6 +49,9 @@ mlp_use_bn : boolean, optional
     default is True
 mlp_bn_momentum : float, optional
     only used if `mlp_use_bn` is True; default is 0.01
+mlp_ghost_batch : int or None, optional
+    only used if `mlp_use_bn` is True; size of batch in "ghost batch norm";
+    if None, normal batch norm is used; defualt is None
 mlp_dropout : float, optional
     whether and how much dropout to use between MLP linear layers;
     `0.0 <= mlp_dropout < 1.0`; default is 0.0

@@ -11,7 +11,7 @@ from xynn.base_classes.modules import BaseNN
 from xynn.autoint.modules import AttnInteractionLayer, AttnInteractionBlock
 from xynn.autoint import AutoInt
 from xynn.embedding import LinearEmbedding, BasicEmbedding
-from xynn.mlp import LeakyGate
+from xynn.mlp import LeakyGate, GhostBatchNorm
 
 from ..common import simple_train_inputs, simple_model_train_loop
 
@@ -129,23 +129,24 @@ def test_that_autoint_parameters_are_passed_to_submodules_other_params():
         output_size=3,
         embedding_num=None,
         embedding_cat=embedding_cat,
-        attn_num_layer=2,
+        attn_num_layers=2,
+        mlp_ghost_batch=8,
         mlp_use_skip=True,
     )
 
     expected_classes = [
         LeakyGate,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
-        nn.BatchNorm1d,
+        GhostBatchNorm,
         nn.LeakyReLU,
         nn.Linear,
     ]

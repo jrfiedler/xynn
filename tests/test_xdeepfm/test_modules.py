@@ -11,7 +11,7 @@ from xynn.base_classes.modules import BaseNN
 from xynn.xdeepfm.modules import CIN
 from xynn.xdeepfm import XDeepFM
 from xynn.embedding import LinearEmbedding, BasicEmbedding
-from xynn.mlp import LeakyGate
+from xynn.mlp import LeakyGate, GhostBatchNorm
 
 from ..common import simple_train_inputs, simple_model_train_loop
 
@@ -161,6 +161,42 @@ def test_that_xdeepfm_parameters_are_passed_to_submodules_other_params():
         for layer, expected_class in zip(mlp.main_layers, expected_classes):
             assert isinstance(layer, expected_class)
         assert mlp.skip_layers is not None
+
+    assert not model.use_residual
+    assert isinstance(model.cin, CIN) and len(model.cin.convs) == 3
+    assert model.mix.requires_grad
+
+
+def test_xdeepfm_parameters_with_ghost_batch():
+    X = torch.randint(0, 10, (100, 10))
+    embedding_cat = BasicEmbedding(embedding_size=3).fit(X)
+    model = XDeepFM(
+        task="classification",
+        output_size=3,
+        embedding_num=None,
+        embedding_cat=embedding_cat,
+        cin_layer_sizes=(20, 20, 20),
+        cin_use_residual=False,
+        mlp_hidden_sizes=(128, 128),
+        mlp_ghost_batch=12,
+        mlp_use_skip=False,
+    )
+
+    expected_classes = [
+        LeakyGate,
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+        GhostBatchNorm,
+        nn.LeakyReLU,
+        nn.Linear,
+    ]
+    for mlp in (model.mlp, model.cin_final):
+        assert len(mlp.main_layers) == len(expected_classes)
+        for layer, expected_class in zip(mlp.main_layers, expected_classes):
+            assert isinstance(layer, expected_class)
+        assert mlp.skip_layers is None
 
     assert not model.use_residual
     assert isinstance(model.cin, CIN) and len(model.cin.convs) == 3

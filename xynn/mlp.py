@@ -3,13 +3,44 @@ Module for MLP (multi-layer perceptron) and related modules
 
 """
 
-
-from typing import Union, Tuple, List, Type
+from math import ceil
+from typing import Union, Tuple, List, Type, Optional
 
 import torch
 from torch import Tensor
 from torch import nn
 from entmax import sparsemax, entmax15
+
+
+class GhostBatchNorm(nn.Module):
+    """
+    Ghost batch normalization, from https://arxiv.org/pdf/1705.08741.pdf
+
+    """
+
+    def __init__(
+        self, num_features: int, virtual_batch_size: int = 64, momentum: float = 0.1
+    ):
+        super().__init__()
+        self.virtual_batch_size = virtual_batch_size
+        self.bn = nn.BatchNorm1d(num_features, momentum=momentum)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Transform the input tensor
+
+        Parameters
+        ----------
+        x : torch.Tensor
+
+        Return
+        ------
+        torch.Tensor
+
+        """
+        chunk_size = int(ceil(x.shape[0] / self.virtual_batch_size))
+        chunk_norm = [self.bn(chunk) for chunk in x.chunk(chunk_size, dim=0)]
+        return torch.cat(chunk_norm, dim=0)
 
 
 class LeakyGate(nn.Module):
@@ -88,6 +119,7 @@ class MLP(nn.Module):
         dropout_first: bool = False,
         use_bn: bool = True,
         bn_momentum: float = 0.1,
+        ghost_batch: Optional[int] = None,
         leaky_gate: bool = True,
         use_skip: bool = True,
         weighted_sum: bool = True,
@@ -117,6 +149,9 @@ class MLP(nn.Module):
             whether to use batch normalization; default is True
         bn_momentum : float, optional
             default is 0.1
+        ghost_batch : int or None, optional
+            only used if `use_bn` is True; size of batch in "ghost batch norm";
+            if None, normal batch norm is used; defualt is None
         leaky_gate : boolean, optional
             whether to include a LeakyGate layer before the linear layers;
             default is True
@@ -158,7 +193,13 @@ class MLP(nn.Module):
         for hidden_size_i, dropout_i in zip(hidden_sizes, dropout):
             main_layers.append(nn.Linear(input_size_i, hidden_size_i, bias=(not use_bn)))
             if use_bn:
-                main_layers.append(nn.BatchNorm1d(hidden_size_i, momentum=bn_momentum))
+                if ghost_batch is None:
+                    bnlayer = nn.BatchNorm1d(hidden_size_i, momentum=bn_momentum)
+                else:
+                    bnlayer = GhostBatchNorm(
+                        hidden_size_i, ghost_batch, momentum=bn_momentum
+                    )
+                main_layers.append(bnlayer)
             main_layers.append(activation())
             if dropout_i > 0:
                 main_layers.append(nn.Dropout(dropout_i))
