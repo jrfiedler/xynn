@@ -9,7 +9,6 @@ from typing import Union, Tuple, List, Type, Optional
 import torch
 from torch import Tensor
 from torch import nn
-from entmax import sparsemax, entmax15
 
 
 class GhostBatchNorm(nn.Module):
