@@ -16,6 +16,7 @@ from ..embedding import check_uniform_embeddings
 from ..embedding import EmbeddingBase
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
 from ..mlp import MLP
+from ..ghost_norm import GhostLayerNorm
 
 
 INIT_DOC = MODULE_INIT_DOC.format(
@@ -63,6 +64,7 @@ class AttnInteractionLayer(nn.Module):
         use_residual: bool = True,
         dropout: float = 0.1,
         normalize: bool = True,
+        ghost_batch_size: Optional[int] = None,
         device: Union[str, torch.device] = "cpu",
     ):
         """
@@ -82,6 +84,9 @@ class AttnInteractionLayer(nn.Module):
             default is 0.1
         normalize : bool, optional
             default is True
+        ghost_batch_size : int or None, optional
+            only used if `use_bn` is True; size of batch in "ghost batch norm";
+            if None, normal batch norm is used; defualt is None
         device : string or torch.device, optional
             default is "cpu"
 
@@ -110,7 +115,12 @@ class AttnInteractionLayer(nn.Module):
             self.dropout = nn.Identity()
 
         if normalize:
-            self.layer_norm = nn.LayerNorm(field_output_size * num_heads)
+            if ghost_batch_size is not None:
+                self.layer_norm = GhostLayerNorm(
+                    field_output_size * num_heads, ghost_batch_size
+                )
+            else:
+                self.layer_norm = nn.LayerNorm(field_output_size * num_heads)
         else:
             self.layer_norm = nn.Identity()
 
@@ -180,6 +190,7 @@ class AttnInteractionBlock(nn.Module):
         use_residual: bool = True,
         dropout: float = 0.1,
         normalize: bool = True,
+        ghost_batch_size: Optional[int] = None,
         device: Union[str, torch.device] = "cpu",
     ):
         """
@@ -201,6 +212,9 @@ class AttnInteractionBlock(nn.Module):
             default is 0.0
         normalize : bool, optional
             default is True
+        ghost_batch_size : int or None, optional
+            only used if `use_bn` is True; size of batch in "ghost batch norm";
+            if None, normal batch norm is used; defualt is None
         device : string or torch.device, optional
             default is "cpu"
 
@@ -218,6 +232,7 @@ class AttnInteractionBlock(nn.Module):
                     use_residual,
                     dropout,
                     normalize,
+                    ghost_batch_size,
                     device,
                 )
             )
@@ -307,6 +322,7 @@ class AutoInt(BaseNN):
             use_residual=attn_use_residual,
             dropout=attn_dropout,
             normalize=attn_normalize,
+            ghost_batch_size=mlp_ghost_batch,
             device=device,
         )
 
@@ -358,9 +374,9 @@ class AutoInt(BaseNN):
         gram = """\
         if mlp_hidden_sizes (default)
         -----------------------------
-        X_num ─ Num. embedding ┐ ┌─ Attn Int ─ ... ─ Attn Int ─ Linear ─┐
-                               ├─┤                                      w+ ── output
-        X_cat ─ Cat. embedding ┘ └──────────────── MLP ─────────────────┘
+        X_num ─ Num. embedding ┐ ┌─ Attn Int ─ ... ─ Attn Int ─ MLP ─┐
+                               ├─┤                                   w+ ── output
+        X_cat ─ Cat. embedding ┘ └─────────────── MLP ───────────────┘
 
         if no mlp_hidden_sizes
         ----------------------

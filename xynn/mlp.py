@@ -10,36 +10,7 @@ import torch
 from torch import Tensor
 from torch import nn
 
-
-class GhostBatchNorm(nn.Module):
-    """
-    Ghost batch normalization, from https://arxiv.org/pdf/1705.08741.pdf
-
-    """
-
-    def __init__(
-        self, num_features: int, virtual_batch_size: int = 64, momentum: float = 0.1
-    ):
-        super().__init__()
-        self.virtual_batch_size = virtual_batch_size
-        self.bn = nn.BatchNorm1d(num_features, momentum=momentum)
-
-    def forward(self, x: Tensor) -> Tensor:
-        """
-        Transform the input tensor
-
-        Parameters
-        ----------
-        x : torch.Tensor
-
-        Return
-        ------
-        torch.Tensor
-
-        """
-        chunk_size = int(ceil(x.shape[0] / self.virtual_batch_size))
-        chunk_norm = [self.bn(chunk) for chunk in x.chunk(chunk_size, dim=0)]
-        return torch.cat(chunk_norm, dim=0)
+from .ghost_norm import GhostBatchNorm
 
 
 class LeakyGate(nn.Module):
@@ -58,6 +29,7 @@ class LeakyGate(nn.Module):
         input_size: int,
         bias: bool = True,
         activation: Type[nn.Module] = nn.LeakyReLU,
+        device: Union[str, torch.device] = "cpu",
     ):
         """
         Parameters
@@ -67,12 +39,15 @@ class LeakyGate(nn.Module):
             whether to include an additive bias; default is True
         activation : torch.nn.Module, optional
             default is nn.LeakyReLU
+        device : string or torch.device, optional
+            default is "cpu"
 
         """
         super().__init__()
         self.weight = nn.Parameter(torch.normal(mean=0, std=1.0, size=(1, input_size)))
         self.bias = nn.Parameter(torch.zeros(size=(1, input_size)), requires_grad=bias)
         self.activation = activation()
+        self.to(device)
 
     def forward(self, X: Tensor) -> Tensor:
         """
