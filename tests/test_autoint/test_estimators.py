@@ -33,8 +33,8 @@ def test_that_autointregressor_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": True,
         "mlp_use_skip": True,
+        "use_leaky_gate": True,
         "weighted_sum": True,
         "loss_fn": "auto",
         "seed": None,
@@ -50,8 +50,8 @@ def test_that_autointclassifier_learns():
         attn_use_mlp=False,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     assert estimator
     check_estimator_learns(estimator, task="classification")
@@ -76,8 +76,8 @@ def test_that_autointclassifier_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "weighted_sum": True,
         "loss_fn": "auto",
         "seed": None,

@@ -10,8 +10,8 @@ def test_that_fibinetregressor_learns():
     estimator = FiBiNetRegressor(
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression")
     assert estimator.init_parameters == {
@@ -32,8 +32,8 @@ def test_that_fibinetregressor_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "loss_fn": "auto",
         "seed": None,
         "device": "cpu",
@@ -48,8 +48,8 @@ def test_that_fibinetclassifier_learns():
         fibi_embed_product="shared",
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     assert estimator
     check_estimator_learns(estimator, task="classification")
@@ -71,8 +71,8 @@ def test_that_fibinetclassifier_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "loss_fn": "auto",
         "seed": None,
         "device": "cpu",
@@ -87,8 +87,8 @@ def test_that_fibinetclassifier_learns_with_hadamard_products():
         fibi_embed_product="shared",
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="classification")
     assert estimator.init_parameters == {
@@ -109,8 +109,8 @@ def test_that_fibinetclassifier_learns_with_hadamard_products():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "loss_fn": "auto",
         "seed": None,
         "device": "cpu",

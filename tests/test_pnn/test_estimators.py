@@ -76,8 +76,8 @@ def test_that_pnnregressor_learns():
     estimator = PNNRegressor(
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression")
     assert estimator.init_parameters == {
@@ -95,8 +95,8 @@ def test_that_pnnregressor_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "loss_fn": "auto",
         "seed": None,
         "device": "cpu",
@@ -109,8 +109,8 @@ def test_that_pnnclassifier_learns():
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_ghost_batch=4,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="classification")
     assert estimator.init_parameters == {
@@ -128,8 +128,8 @@ def test_that_pnnclassifier_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "loss_fn": "auto",
         "seed": None,
         "device": "cpu",
@@ -144,8 +144,8 @@ def test_that_pnnplusregressor_learns():
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
         mlp_ghost_batch=4,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression")
     assert estimator.init_parameters == {
@@ -163,8 +163,8 @@ def test_that_pnnplusregressor_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "weighted_sum": True,
         "loss_fn": "auto",
         "seed": None,
@@ -180,8 +180,8 @@ def test_that_pnnplusclassifier_learns():
         embedding_cat=embed_cat,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="classification")
     assert estimator.init_parameters == {
@@ -199,8 +199,8 @@ def test_that_pnnplusclassifier_learns():
         "mlp_dropout": 0.0,
         "mlp_l1_reg": 0.0,
         "mlp_l2_reg": 0.0,
-        "mlp_leaky_gate": False,
         "mlp_use_skip": False,
+        "use_leaky_gate": False,
         "weighted_sum": True,
         "loss_fn": "auto",
         "seed": None,

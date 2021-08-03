@@ -14,7 +14,7 @@ from torch import Tensor
 from torch import nn
 
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
-from ..mlp import MLP
+from ..mlp import MLP, LeakyGate
 from ..embedding import check_uniform_embeddings
 from ..embedding.common import EmbeddingBase
 
@@ -184,8 +184,8 @@ class PNNCore(nn.Module):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
+        use_leaky_gate: bool = True,
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__()
@@ -232,7 +232,7 @@ class PNNCore(nn.Module):
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
             ghost_batch=mlp_ghost_batch,
-            leaky_gate=mlp_leaky_gate,
+            leaky_gate=use_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
         )
@@ -302,10 +302,10 @@ class PNN(BaseNN):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
         mlp_l1_reg: float = 0.0,
         mlp_l2_reg: float = 0.0,
+        use_leaky_gate: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
@@ -334,7 +334,7 @@ class PNN(BaseNN):
             mlp_bn_momentum=mlp_bn_momentum,
             mlp_ghost_batch=mlp_ghost_batch,
             mlp_dropout=mlp_dropout,
-            mlp_leaky_gate=mlp_leaky_gate,
+            use_leaky_gate=use_leaky_gate,
             mlp_use_skip=mlp_use_skip,
             device=device,
         )
@@ -418,10 +418,10 @@ class PNNPlus(BaseNN):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
         mlp_l1_reg: float = 0.0,
         mlp_l2_reg: float = 0.0,
+        use_leaky_gate: bool = True,
         weighted_sum: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
@@ -443,6 +443,11 @@ class PNNPlus(BaseNN):
 
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
 
+        if use_leaky_gate:
+            self.gate = LeakyGate(embed_info.output_size, device=device)
+        else:
+            self.gate = nn.Identity()
+
         self.pnn = PNNCore(
             task="classification",
             output_size=output_size,
@@ -456,7 +461,7 @@ class PNNPlus(BaseNN):
             mlp_bn_momentum=mlp_bn_momentum,
             mlp_ghost_batch=mlp_ghost_batch,
             mlp_dropout=mlp_dropout,
-            mlp_leaky_gate=mlp_leaky_gate,
+            use_leaky_gate=use_leaky_gate,
             mlp_use_skip=mlp_use_skip,
             device=device,
         )
@@ -472,7 +477,7 @@ class PNNPlus(BaseNN):
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
             ghost_batch=mlp_ghost_batch,
-            leaky_gate=mlp_leaky_gate,
+            leaky_gate=use_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
         )
@@ -492,9 +497,9 @@ class PNNPlus(BaseNN):
         gram = """\
         if pnn_product_type="outer" (default) or pnn_product_type="inner"
         ---------------------------------------------------------
-        X_num ─ Num. embedding ┐ ┌─────── Linear ────────┬─ MLP ─┐
-                               ├─┼─ inner/outer product ─┘       w+ ── output
-        X_cat ─ Cat. embedding ┘ └───────────────────────── MLP ─┘
+        X_num ─ Num. embedding ┐ ┌─ Linear ──┬─ MLP ─┐
+                               ├─┼─ product ─┘       w+ ── output
+        X_cat ─ Cat. embedding ┘ └───────────── MLP ─┘
 
         if pnn_product_type="both"
         ----------------------   ┌──── Linear ─────┐
@@ -539,7 +544,7 @@ class PNNPlus(BaseNN):
         """
         embedded = self.embed(X_num, X_cat)
         mix = torch.sigmoid(self.mix)
-        out_1 = self.pnn(embedded)
+        out_1 = self.pnn(self.gate(embedded))
         out_2 = self.mlp(embedded.reshape((X_num.shape[0], -1)))
         out = mix * out_1 + (1 - mix) * out_2
         return out

@@ -54,8 +54,8 @@ def test_that_mlpregressor_learns():
     estimator = MLPRegressor(
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression", data=(X, None, y))
 
@@ -68,8 +68,8 @@ def test_that_mlpclassifier_learns():
     estimator = MLPClassifier(
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression", data=(X, None, y))
 
@@ -81,8 +81,8 @@ def test_that_mlpregressor_allows_dense_and_ragged_embeddings():
         embedding_cat=RaggedEmbedding(),
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression")
 
@@ -93,7 +93,7 @@ def test_that_mlpclassifier_doesnt_require_numeric_embedding():
         embedding_num=None,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     check_estimator_learns(estimator, task="regression")

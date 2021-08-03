@@ -103,8 +103,8 @@ def test_that_xdeepfm_parameters_are_passed_to_submodules():
         mlp_activation=nn.ReLU,
         mlp_hidden_sizes=(512, 128, 32),
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
 
     expected_classes = [
@@ -221,8 +221,8 @@ def test_xdeepfm_mlp_weight():
         embedding_cat=None,
         cin_use_mlp=False,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
 
     exp_w1 = 0
@@ -243,8 +243,8 @@ def test_xdeepfm_mlp_weight():
         embedding_cat=None,
         cin_use_mlp=True,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
 
     exp_w1 = 0
@@ -274,8 +274,8 @@ def test_that_xdeepfm_learns():
         embedding_cat=BasicEmbedding(embedding_size=3).fit(X_cat),
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     
     loss_func = nn.MSELoss()
@@ -303,8 +303,8 @@ def test_that_xdeepfm_learns_with_other_params():
         embedding_cat=BasicEmbedding(embedding_size=3).fit(X_cat),
         mlp_hidden_sizes=[],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     
     loss_func = nn.MSELoss()

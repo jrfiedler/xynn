@@ -70,8 +70,8 @@ def test_that_activation_and_sizes_are_passed_to_mlp_module():
         mlp_activation=nn.ReLU,
         mlp_hidden_sizes=(512, 128, 32),
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     expected_classes = [
         nn.Linear,
@@ -99,8 +99,8 @@ def test_that_more_parameters_are_passed_to_mlp_module():
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_dropout=0.1,
-        mlp_leaky_gate=True,
         mlp_use_skip=True,
+        use_leaky_gate=True,
     )
 
     expected_classes = [
@@ -137,8 +137,8 @@ def test_mlp_module_layers_with_ghost_batch():
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_ghost_batch=16,
-        mlp_leaky_gate=False,
         mlp_use_skip=True,
+        use_leaky_gate=False,
     )
 
     expected_classes = [
@@ -171,8 +171,8 @@ def test_mlp_weight():
         embedding_cat=None,
         num_numeric_fields=3,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     mlp = model.mlp
     w1, w2 = model.mlp_weight_sum()
@@ -196,8 +196,8 @@ def test_that_mlpnet_learns():
         num_numeric_fields=10,
         mlp_hidden_sizes=[10, 8, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     loss_func = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)

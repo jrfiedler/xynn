@@ -15,7 +15,7 @@ from torch.nn import functional as F
 from ..embedding import check_uniform_embeddings
 from ..embedding import EmbeddingBase
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
-from ..mlp import MLP
+from ..mlp import MLP, LeakyGate
 from ..ghost_norm import GhostLayerNorm
 
 
@@ -290,10 +290,10 @@ class AutoInt(BaseNN):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
         mlp_l1_reg: float = 0.0,
         mlp_l2_reg: float = 0.0,
+        use_leaky_gate: bool = True,
         weighted_sum: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
@@ -312,6 +312,11 @@ class AutoInt(BaseNN):
 
         device = torch.device(device)
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
+
+        if use_leaky_gate:
+            self.attn_gate = LeakyGate(embed_info.output_size, device=device)
+        else:
+            self.attn_gate = nn.Identity()
 
         self.attn_interact = AttnInteractionBlock(
             field_input_size=embed_info.embedding_size,
@@ -336,7 +341,7 @@ class AutoInt(BaseNN):
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
             ghost_batch=mlp_ghost_batch,
-            leaky_gate=mlp_leaky_gate,
+            leaky_gate=use_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
         )
@@ -352,7 +357,7 @@ class AutoInt(BaseNN):
                 use_bn=mlp_use_bn,
                 bn_momentum=mlp_bn_momentum,
                 ghost_batch=mlp_ghost_batch,
-                leaky_gate=mlp_leaky_gate,
+                leaky_gate=use_leaky_gate,
                 use_skip=mlp_use_skip,
                 device=device,
             )
@@ -374,18 +379,18 @@ class AutoInt(BaseNN):
         gram = """\
         if mlp_hidden_sizes (default)
         -----------------------------
-        X_num ─ Num. embedding ┐ ┌─ Attn Int ─ ... ─ Attn Int ─ MLP ─┐
-                               ├─┤                                   w+ ── output
-        X_cat ─ Cat. embedding ┘ └─────────────── MLP ───────────────┘
+        X_num ─ Num. embedding ┐ ┌─ Attn ─ ... ─ Attn ─ MLP ─┐
+                               ├─┤                           w+ ── output
+        X_cat ─ Cat. embedding ┘ └────────── MLP ────────────┘
 
         if no mlp_hidden_sizes
         ----------------------
-        X_num ─ Num. embedding ┬─ Attn Int ─ ... ─ Attn Int ─ Linear ─ output
+        X_num ─ Num. embedding ┬─ Attn ─ ... ─ Attn ─ Linear ─ output
         X_cat ─ Cat. embedding ┘ 
 
         splits are copies and joins are concatenations;
         'w+' is weighted element-wise addition;
-        "Attn Int" is AutoInt's AttentionInteractionLayer
+        "Attn" is AutoInt's AttentionInteractionLayer
         """
         print("\n" + textwrap.dedent(gram))
 
@@ -423,7 +428,8 @@ class AutoInt(BaseNN):
 
         """
         embedded = self.embed(X_num, X_cat)
-        out = self.attn_interact(embedded)
+        out = self.attn_gate(embedded)
+        out = self.attn_interact(out)
         out = self.attn_final(out.reshape((out.shape[0], -1)))
         if self.mlp is not None:
             embedded_2d = embedded.reshape((embedded.shape[0], -1))

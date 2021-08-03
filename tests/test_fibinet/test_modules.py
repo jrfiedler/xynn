@@ -212,8 +212,8 @@ def test_that_fibinet_requires_num_numeric_fields_when_embedding_num_is_None():
             mlp_activation=nn.ReLU,
             mlp_hidden_sizes=(512, 128, 32),
             mlp_use_bn=False,
-            mlp_leaky_gate=False,
             mlp_use_skip=False,
+            use_leaky_gate=False,
         )
 
 
@@ -229,8 +229,8 @@ def test_that_fibinet_parameters_are_passed_to_submodules():
         mlp_activation=nn.ReLU,
         mlp_hidden_sizes=(512, 128, 32),
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
 
     expected_classes = [
@@ -313,8 +313,8 @@ def test_fibinet_mlp_weight():
         embedding_cat=None,
         num_numeric_fields=10,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     mlp = model.mlp
     w1, w2 = model.mlp_weight_sum()
@@ -340,8 +340,8 @@ def test_that_fibinet_learns():
         embedding_cat=BasicEmbedding(embedding_size=3).fit(X_cat),
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     
     loss_func = nn.MSELoss()
@@ -372,8 +372,8 @@ def test_that_fibinet_learns_with_other_params():
         fibi_senet_skip=False,
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     
     loss_func = nn.MSELoss()

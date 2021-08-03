@@ -15,7 +15,7 @@ from torch import nn, Tensor
 from ..embedding.common import EmbeddingBase
 from ..embedding import check_uniform_embeddings
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
-from ..mlp import MLP
+from ..mlp import MLP, LeakyGate
 
 
 INIT_DOC = MODULE_INIT_DOC.format(
@@ -347,10 +347,10 @@ class FiBiNet(BaseNN):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
         mlp_l1_reg: float = 0.0,
         mlp_l2_reg: float = 0.0,
+        use_leaky_gate: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
@@ -374,6 +374,15 @@ class FiBiNet(BaseNN):
                 msg = "when embedding_num is None, num_numeric_fields must be an integer"
                 raise TypeError(msg)
             num_numeric_fields = embedding_num.num_fields
+
+        if use_leaky_gate:
+            self.senet_gate = LeakyGate(embed_info.output_size, device=device)
+            self.bilin_gate = LeakyGate(embed_info.output_size, device=device)
+            self.x_num_gate = LeakyGate(num_numeric_fields, device=device)
+        else:
+            self.senet_gate = nn.Identity()
+            self.bilin_gate = nn.Identity()
+            self.x_num_gate = nn.Identity()
 
         self.senet = SENET(
             num_fields=num_fields,
@@ -421,7 +430,7 @@ class FiBiNet(BaseNN):
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
             ghost_batch=mlp_ghost_batch,
-            leaky_gate=mlp_leaky_gate,
+            leaky_gate=use_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
         )
@@ -501,14 +510,21 @@ class FiBiNet(BaseNN):
 
         """
         embedded = self.embed(X_num, X_cat)
-        out_s = self.senet(embedded)
+
+        out_s = self.senet_gate(embedded)
+        out_s = self.senet(out_s)
+
         out_p = self.senet_product(out_s).reshape((embedded.shape[0], -1))
-        out_q = self.embed_product(embedded).reshape((embedded.shape[0], -1))
+
+        out_q = self.bilin_gate(embedded)
+        out_q = self.embed_product(out_q).reshape((embedded.shape[0], -1))
+
+        out_x = self.x_num_gate(X_num)
 
         if self.senet_skip:
             out_s = out_s.reshape((embedded.shape[0], -1))
-            out = self.mlp(torch.cat([X_num, out_s, out_p, out_q], dim=1))
+            out = self.mlp(torch.cat([out_x, out_s, out_p, out_q], dim=1))
         else:
-            out = self.mlp(torch.cat([X_num, out_p, out_q], dim=1))
+            out = self.mlp(torch.cat([out_x, out_p, out_q], dim=1))
 
         return out

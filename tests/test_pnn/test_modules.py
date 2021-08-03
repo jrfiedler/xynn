@@ -125,8 +125,8 @@ def test_that_pnn_parameters_are_passed_to_submodules():
         mlp_activation=nn.ReLU,
         mlp_hidden_sizes=(512, 128, 32),
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
 
     expected_classes = [
@@ -161,8 +161,8 @@ def test_that_pnnplus_parameters_are_passed_to_submodules():
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_dropout=0.1,
-        mlp_leaky_gate=True,
         mlp_use_skip=True,
+        use_leaky_gate=True,
     )
 
     expected_classes = [
@@ -206,8 +206,8 @@ def test_pnnplus_parameters_with_ghost_batch():
         mlp_hidden_sizes=(512, 64),
         mlp_use_bn=True,
         mlp_ghost_batch=32,
-        mlp_leaky_gate=True,
         mlp_use_skip=False,
+        use_leaky_gate=True,
     )
 
     expected_classes = [
@@ -249,8 +249,8 @@ def test_pnn_mlp_weight():
         embedding_num=embedding_num,
         embedding_cat=None,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     mlp = model.pnn.mlp
     w1, w2 = model.mlp_weight_sum()
@@ -270,8 +270,8 @@ def test_pnnplus_mlp_weight():
         embedding_num=embedding_num,
         embedding_cat=None,
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     mlp1 = model.pnn.mlp
     mlp2 = model.mlp
@@ -297,8 +297,8 @@ def test_that_pnn_learns():
         embedding_cat=None,
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     loss_func = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
@@ -319,8 +319,8 @@ def test_that_pnnplus_learns():
         embedding_cat=None,
         mlp_hidden_sizes=[10, 8, 6],
         mlp_use_bn=False,
-        mlp_leaky_gate=False,
         mlp_use_skip=False,
+        use_leaky_gate=False,
     )
     loss_func = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)

@@ -13,7 +13,8 @@ from torch import nn, Tensor
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
 from ..embedding import check_uniform_embeddings
 from ..embedding.common import EmbeddingBase
-from ..mlp import MLP
+from ..mlp import MLP, LeakyGate
+from ..ghost_norm import GhostBatchNorm
 
 
 INIT_DOC = MODULE_INIT_DOC.format(
@@ -54,6 +55,7 @@ class CIN(nn.Module):
         full_agg: bool = False,
         use_bn: bool = True,
         bn_momentum: float = 0.1,
+        ghost_batch_size: Optional[int] = None,
         device: Union[str, torch.device] = "cpu",
     ):
         super().__init__()
@@ -74,10 +76,15 @@ class CIN(nn.Module):
             self.convs.append(
                 nn.Conv1d(in_channels=input_size, out_channels=size, kernel_size=1)
             )
+
             if use_bn:
-                bn = nn.BatchNorm1d(size, momentum=bn_momentum)
+                if ghost_batch_size is not None:
+                    bn = GhostBatchNorm(size, ghost_batch_size, momentum=bn_momentum)
+                else:
+                    bn = nn.BatchNorm1d(size, momentum=bn_momentum)
             else:
                 bn = nn.Identity()
+
             self.norms.append(bn)
             self.actns.append(activation())
 
@@ -165,10 +172,10 @@ class XDeepFM(BaseNN):
         mlp_bn_momentum: float = 0.1,
         mlp_ghost_batch: Optional[int] = None,
         mlp_dropout: float = 0.0,
-        mlp_leaky_gate: bool = True,
         mlp_use_skip: bool = True,
         mlp_l1_reg: float = 0.0,
         mlp_l2_reg: float = 0.0,
+        use_leaky_gate: bool = True,
         loss_fn: Union[str, Callable] = "auto",
         device: Union[str, torch.device] = "cpu",
     ):
@@ -187,6 +194,11 @@ class XDeepFM(BaseNN):
         device = torch.device(device)
         embed_info = check_uniform_embeddings(embedding_num, embedding_cat)
 
+        if use_leaky_gate:
+            self.cin_gate = LeakyGate(embed_info.output_size, device=device)
+        else:
+            self.cin_gate = nn.Identity()
+
         self.cin = CIN(
             num_fields=embed_info.num_fields,
             layer_sizes=cin_layer_sizes,
@@ -194,6 +206,7 @@ class XDeepFM(BaseNN):
             full_agg=cin_full_agg,
             use_bn=cin_use_bn,
             bn_momentum=cin_bn_momentum,
+            ghost_batch_size=mlp_ghost_batch,
             device=device,
         )
 
@@ -207,7 +220,7 @@ class XDeepFM(BaseNN):
             use_bn=mlp_use_bn,
             bn_momentum=mlp_bn_momentum,
             ghost_batch=mlp_ghost_batch,
-            leaky_gate=mlp_leaky_gate,
+            leaky_gate=use_leaky_gate,
             use_skip=mlp_use_skip,
             device=device,
         )
@@ -223,7 +236,7 @@ class XDeepFM(BaseNN):
                 use_bn=mlp_use_bn,
                 bn_momentum=mlp_bn_momentum,
                 ghost_batch=mlp_ghost_batch,
-                leaky_gate=mlp_leaky_gate,
+                leaky_gate=use_leaky_gate,
                 use_skip=mlp_use_skip,
                 device=device,
             )
@@ -313,7 +326,8 @@ class XDeepFM(BaseNN):
 
         """
         embedded = self.embed(X_num, X_cat)
-        cin_out = self.cin(embedded)
+        cin_out = self.cin_gate(embedded)
+        cin_out = self.cin(cin_out)
         out = self.cin_final(cin_out)
         if self.use_residual:
             out = cin_out.sum(dim=1, keepdim=True) + out

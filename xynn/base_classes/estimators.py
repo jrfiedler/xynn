@@ -90,12 +90,11 @@ mlp_l1_reg : float, optional
     value for l1 regularization of MLP weights; default is 0.0
 mlp_l2_reg : float, optional
     value for l2 regularization of MLP weights; default is 0.0
-mlp_leaky_gate : boolean, optional
-    whether to include a "leaky gate" layer before the MLP layers;
-    default is True
 mlp_use_skip : boolean, optional
     use a side path in the MLP containing just the optional leaky gate
     plus single linear layer; default is True
+use_leaky_gate : boolean, optional
+    whether to include "leaky gate" layers; default is True
 loss_fn : "auto" or PyTorch loss function, optional
     if "auto", nn.CrossEntropyLoss is used; default is "auto"
 seed : int or None, optional
