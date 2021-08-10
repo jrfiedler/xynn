@@ -16,7 +16,6 @@ from ..embedding import check_uniform_embeddings
 from ..embedding import EmbeddingBase
 from ..base_classes.modules import BaseNN, MODULE_INIT_DOC
 from ..mlp import MLP, LeakyGate
-from ..ghost_norm import GhostLayerNorm
 
 
 INIT_DOC = MODULE_INIT_DOC.format(
@@ -115,12 +114,7 @@ class AttnInteractionLayer(nn.Module):
             self.dropout = nn.Identity()
 
         if normalize:
-            if ghost_batch_size is not None:
-                self.layer_norm = GhostLayerNorm(
-                    field_output_size * num_heads, ghost_batch_size
-                )
-            else:
-                self.layer_norm = nn.LayerNorm(field_output_size * num_heads)
+            self.layer_norm = nn.LayerNorm(field_output_size * num_heads)
         else:
             self.layer_norm = nn.Identity()
 

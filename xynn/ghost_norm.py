@@ -88,31 +88,3 @@ class GhostBatchNorm(GhostNorm):
             inner_norm=nn.BatchNorm1d(num_features, momentum=momentum),
             virtual_batch_size=virtual_batch_size,
         )
-
-
-class GhostLayerNorm(GhostNorm):
-    """
-    Ghost Normalization using LayerNorm as inner normalization
-
-    """
-
-    def __init__(
-        self,
-        num_features: int,
-        virtual_batch_size: int = 64,
-        device: Union[str, torch.device] = "cpu",
-    ):
-        """
-        Parameters
-        ----------
-        num_features : int
-        virtual_batch_size : int, optional
-            default is 64
-        device : string or torch.device, optional
-            default is "cpu"
-
-        """
-        super().__init__(
-            inner_norm=nn.LayerNorm(num_features),
-            virtual_batch_size=virtual_batch_size,
-        )
