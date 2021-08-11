@@ -92,6 +92,7 @@ class SimpleMLP(BaseNN):
         mlp_l2_reg=0.0,
         loss_fn="auto",
         mix_value=None,
+        device="cpu",
     ):
         super().__init__(
             task,
@@ -115,7 +116,7 @@ class SimpleMLP(BaseNN):
         else:
             self.mix = None
         self._device = "cpu"
-        self.to("cpu")
+        self.to(device)
 
     def mlp_weight_sum(self):
         w1_sum = 0.0

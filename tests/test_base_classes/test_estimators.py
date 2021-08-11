@@ -44,9 +44,11 @@ class SimpleMLPEstimator:
             task=self.task,
             hidden_sizes=self.hidden_sizes,
             loss_fn=self.loss_fn,
+            device=self._device,
         )
         self._model.embedding_num = self.embedding_num
         self._model.embedding_cat = self.embedding_cat
+        self._model.to(self._device)
 
 
 class SimpleMLPRegressor(SimpleMLPEstimator, BaseRegressor):
@@ -473,9 +475,9 @@ def test_that_regressor_predict_raises_error_before_fitting():
         model.predict(X_num, X_cat)
 
 
-def test_regressor_predict():
+def test_regressor_predict(device):
     X_num, X_cat, y = simple_data()
-    model = SimpleMLPRegressor(hidden_sizes=[])
+    model = SimpleMLPRegressor(hidden_sizes=[], device=device)
     model.fit(X_num, X_cat, y, optimizer=torch.optim.Adam, opt_kwargs={"lr": 1e-1})
     model._model.train()
 
@@ -516,9 +518,16 @@ def test_that_classifier_predict_proba_raises_error_before_fitting():
         model.predict_proba(X_num, X_cat)
 
 
-def test_classifier_predict():
+def test_that_classifier_predict_logits_raises_error_before_fitting():
     X_num, X_cat, y = simple_data(task="classification")
     model = SimpleMLPClassifier(hidden_sizes=[])
+    with pytest.raises(RuntimeError, match="you need to fit the model first"):
+        model.predict_logits(X_num, X_cat)
+
+
+def test_classifier_predict(device):
+    X_num, X_cat, y = simple_data(task="classification")
+    model = SimpleMLPClassifier(hidden_sizes=[], device=device)
     model.fit(X_num, X_cat, y, optimizer=torch.optim.Adam, opt_kwargs={"lr": 1e-1})
     model._model.train()
 
@@ -546,9 +555,9 @@ def test_classifier_predict():
     assert torch.all(preds == preds_np).item()
 
 
-def test_classifier_predict_proba():
+def test_classifier_predict_proba(device):
     X_num, X_cat, y = simple_data(task="classification")
-    model = SimpleMLPClassifier(hidden_sizes=[])
+    model = SimpleMLPClassifier(hidden_sizes=[], device=device)
     model.fit(X_num, X_cat, y, optimizer=torch.optim.Adam, opt_kwargs={"lr": 1e-1})
     model._model.train()
 
@@ -574,3 +583,33 @@ def test_classifier_predict_proba():
     probas_np = model.predict_proba(X_num, X_cat)
 
     assert torch.allclose(probas, probas_np)
+
+
+def test_classifier_predict_logits(device):
+    X_num, X_cat, y = simple_data(task="classification")
+    model = SimpleMLPClassifier(hidden_sizes=[], device=device)
+    model.fit(X_num, X_cat, y, optimizer=torch.optim.Adam, opt_kwargs={"lr": 1e-1})
+    model._model.train()
+
+    # replace the embeddings and X_num and X_cat together be the identity,
+    # to make the output easy to check
+    model._model.embedding_num = nn.Identity()
+    model._model.embedding_cat = nn.Identity()
+    X_num = torch.tensor([[1.0 if row == col else 0.0 for col in range(7)] for row in range(11)])
+    X_cat = torch.tensor([[1.0 if row == col else 0.0 for col in range(7, 11)] for row in range(11)])
+
+    logits = model.predict_logits(X_num, X_cat)
+
+    assert logits.requires_grad == False
+    assert model._model.training == False
+
+    linear = model._model.layers[0]
+    expect = linear.weight.T + linear.bias
+
+    assert torch.all(torch.eq(logits, expect)).item()
+
+    # predict again with numpy array for X_num
+    X_num = np.array([[1.0 if row == col else 0.0 for col in range(7)] for row in range(11)])
+    probas_np = model.predict_logits(X_num, X_cat)
+
+    assert torch.allclose(logits, probas_np)

@@ -498,6 +498,30 @@ class BaseClassifier(BaseEstimator):
             self._create_model()
         return X_num, X_cat, y
 
+    def predict_logits(self, X_num, X_cat):
+        """
+        Calculate class logits
+
+        Parameters
+        ----------
+        X_num : torch.Tensor, numpy.ndarray, or None
+        X_cat : torch.Tensor, numpy.ndarray, or None
+
+        Return
+        ------
+        torch.Tensor
+
+        """
+        if not self._model:
+            raise RuntimeError("you need to fit the model first")
+        X_num, X_cat = self._convert_x(X_num, X_cat)
+        X_num = X_num.to(device=self._device)
+        X_cat = X_cat.to(device=self._device)
+        self._model.eval()
+        with torch.no_grad():
+            raw = self._model(X_num, X_cat)
+        return raw
+
     def predict(self, X_num, X_cat):
         """
         Calculate class predictions
@@ -514,11 +538,12 @@ class BaseClassifier(BaseEstimator):
         """
         if not self._model:
             raise RuntimeError("you need to fit the model first")
-        X_num, X_cat = self._convert_x(X_num, X_cat)
-        self._model.eval()
-        with torch.no_grad():
-            raw = self._model(X_num, X_cat)
-            preds = torch.argmax(raw, dim=1)
+        class_inverse = {v: k for k, v in self.classes.items()}
+        raw = self.predict_logits(X_num, X_cat)
+        preds = torch.argmax(raw, dim=1)
+        preds = torch.tensor(
+            [class_inverse[pred.item()] for pred in preds]
+        ).to(device=self._device)
         return preds
 
     def predict_proba(self, X_num, X_cat):
@@ -537,11 +562,8 @@ class BaseClassifier(BaseEstimator):
         """
         if not self._model:
             raise RuntimeError("you need to fit the model first")
-        X_num, X_cat = self._convert_x(X_num, X_cat)
-        self._model.eval()
-        with torch.no_grad():
-            raw = self._model(X_num, X_cat)
-            proba = softmax(raw, dim=1)
+        raw = self.predict_logits(X_num, X_cat)
+        proba = softmax(raw, dim=1)
         return proba
 
 
@@ -617,6 +639,8 @@ class BaseRegressor(BaseEstimator):
         if not self._model:
             raise RuntimeError("you need to fit the model first")
         X_num, X_cat = self._convert_x(X_num, X_cat)
+        X_num = X_num.to(device=self._device)
+        X_cat = X_cat.to(device=self._device)
         self._model.eval()
         with torch.no_grad():
             preds = self._model(X_num, X_cat)
